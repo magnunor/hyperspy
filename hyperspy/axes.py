@@ -716,8 +716,14 @@ class AxesManager(t.HasTraits):
         try:
             if event.key == "right" or event.key == "6":
                 x.index += self._step
+                if x.slice is not None:
+                    x.slice = slice(x.slice.start + self._step, 
+                                    x.slice.stop + self._step, x.slice.step)
             elif event.key == "left" or event.key == "4":
                 x.index -= self._step
+                if x.slice is not None:
+                    x.slice = slice(x.slice.start - self._step, 
+                                    x.slice.stop - self._step, x.slice.step)
             elif event.key == "pageup":
                 self._step += 1
             elif event.key == "pagedown":
@@ -727,8 +733,16 @@ class AxesManager(t.HasTraits):
                 y = self.navigation_axes[1]
                 if event.key == "up" or event.key == "8":
                     y.index -= self._step
+                    if y.slice is not None:
+                        y.slice = slice(y.slice.start - self._step,
+                                        y.slice.stop - self._step,
+                                        y.slice.step)
                 elif event.key == "down" or event.key == "2":
                     y.index += self._step
+                    if y.slice is not None:
+                        y.slice = slice(y.slice.start + self._step,
+                                        y.slice.stop + self._step,
+                                        y.slice.step)
         except TraitError:
             pass
 
