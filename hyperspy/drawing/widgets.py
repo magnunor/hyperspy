@@ -57,7 +57,7 @@ class DraggablePatch(object):
             if value is True:
                 self.add_patch_to(self.ax)
                 self.connect(self.ax)
-            elif value is False:
+            elif value is False and self.ax is not None:
                 for container in [
                         self.ax.patches,
                         self.ax.lines,
@@ -71,8 +71,6 @@ class DraggablePatch(object):
                 self.ax.figure.canvas.draw()
             except:  # figure does not exist
                 pass
-            else:
-                self.ax = None
 
     def set_patch(self):
         pass
@@ -175,6 +173,12 @@ class DraggableSquare(ResizebleDraggablePatch):
 
     def __init__(self, axes_manager):
         DraggablePatch.__init__(self, axes_manager)
+        if self.axes_manager is not None and \
+                self.axes_manager.navigation_dimension > 1:
+            self.xaxis = self.axes_manager.navigation_axes[0]
+            self.yaxis = self.axes_manager.navigation_axes[1]
+        else:
+            self.xaxis = self.yaxis = None
 
     def set_patch(self):
         self.calculate_size()
@@ -188,13 +192,11 @@ class DraggableSquare(ResizebleDraggablePatch):
             picker=True,)
 
     def calculate_size(self):
-        xaxis = self.axes_manager.navigation_axes[0]
-        yaxis = self.axes_manager.navigation_axes[1]
-        self._xsize = xaxis.scale * self.size
-        self._ysize = yaxis.scale * self.size
+        self._xsize = self.xaxis.scale * self.size
+        self._ysize = self.yaxis.scale * self.size
 
     def calculate_position(self):
-        coordinates = np.array(self.axes_manager.coordinates[:2])
+        coordinates = np.array((self.xaxis.value, self.yaxis.value))
         self._position = coordinates - (
             self._xsize / 2., self._ysize / 2.)
 
@@ -212,20 +214,18 @@ class DraggableSquare(ResizebleDraggablePatch):
     def onmove(self, event):
         'on mouse motion draw the cursor if picked'
         if self.picked is True and event.inaxes:
-            xaxis = self.axes_manager.navigation_axes[0]
-            yaxis = self.axes_manager.navigation_axes[1]
-            wxindex = xaxis.value2index(event.xdata)
-            wyindex = yaxis.value2index(event.ydata)
-            if self.axes_manager.indices[1] != wyindex:
+            wxindex = self.xaxis.value2index(event.xdata)
+            wyindex = self.yaxis.value2index(event.ydata)
+            if self.yaxis.index != wyindex:
                 try:
-                    yaxis.index = wyindex
+                    self.yaxis.index = wyindex
                 except traits.api.TraitError:
                     # Index out of range, we do nothing
                     pass
 
-            if self.axes_manager.indices[0] != wxindex:
+            if self.xaxis.index != wxindex:
                 try:
-                    xaxis.index = wxindex
+                    self.xaxis.index = wxindex
                 except traits.api.TraitError:
                     # Index out of range, we do nothing
                     pass
@@ -235,6 +235,12 @@ class ResizebleDraggableRectangle(ResizebleDraggablePatch):
 
     def __init__(self, axes_manager):
         super(ResizebleDraggableRectangle, self).__init__(axes_manager)
+        if self.axes_manager is not None and \
+                self.axes_manager.navigation_dimension > 1:
+            self.xaxis = self.axes_manager.navigation_axes[0]
+            self.yaxis = self.axes_manager.navigation_axes[1]
+        else:
+            self.xaxis = self.yaxis = None
         self.xsize = 1
         self.ysize = 1
         self.bounds = []
@@ -341,13 +347,11 @@ class ResizebleDraggableRectangle(ResizebleDraggablePatch):
             self.resizers.append(r)
 
     def calculate_size(self):
-        xaxis = self.axes_manager.navigation_axes[0]
-        yaxis = self.axes_manager.navigation_axes[1]
-        self._xsize = xaxis.scale * self.xsize
-        self._ysize = yaxis.scale * self.ysize
+        self._xsize = self.xaxis.scale * self.xsize
+        self._ysize = self.yaxis.scale * self.ysize
 
     def calculate_position(self):
-        coordinates = np.array(self.axes_manager.coordinates[:2])
+        coordinates = np.array((self.xaxis.value, self.yaxis.value))
         self._position = coordinates - (
             self._xsize / (2.*self.xsize),
             self._ysize / (2.*self.ysize))
@@ -390,8 +394,8 @@ class ResizebleDraggableRectangle(ResizebleDraggablePatch):
         
             
     def _apply_geometry(self, x1=None, y1=None):
-        xaxis = self.axes_manager.navigation_axes[0]
-        yaxis = self.axes_manager.navigation_axes[1]
+        xaxis = self.xaxis
+        yaxis = self.yaxis
          
         if x1 is None: 
             x1 = xaxis.index
@@ -454,24 +458,21 @@ class ResizebleDraggableRectangle(ResizebleDraggablePatch):
             y = event.mouseevent.ydata
             dx = self._xsize / self.xsize
             dy = self._ysize / self.ysize
-            xaxis = self.axes_manager.navigation_axes[0]
-            yaxis = self.axes_manager.navigation_axes[1]
-            ix = self.v2i(xaxis, x + 0.5*dx)
-            iy = self.v2i(yaxis, y + 0.5*dy)
-            self.pick_offset = (ix-xaxis.index, iy-yaxis.index)
+            ix = self.v2i(self.xaxis, x + 0.5*dx)
+            iy = self.v2i(self.yaxis, y + 0.5*dy)
+            self.pick_offset = (ix-self.xaxis.index, iy-self.yaxis.index)
             self.pick_on_frame = False
         
     def onmove(self, event):
         'on mouse motion draw the cursor if picked'
         if self.picked is True and event.inaxes:
-            xaxis = self.axes_manager.navigation_axes[0]
-            yaxis = self.axes_manager.navigation_axes[1]
             dx = self._xsize / self.xsize
             dy = self._ysize / self.ysize
-            ix = self.v2i(xaxis, event.xdata + 0.5*dx)
-            iy = self.v2i(yaxis, event.ydata + 0.5*dy)
-            ibounds = [xaxis.index, yaxis.index, xaxis.index + self.xsize,
-                       yaxis.index + self.ysize]
+            ix = self.v2i(self.xaxis, event.xdata + 0.5*dx)
+            iy = self.v2i(self.yaxis, event.ydata + 0.5*dy)
+            ibounds = [self.xaxis.index, self.yaxis.index, 
+                       self.xaxis.index + self.xsize,
+                       self.yaxis.index + self.ysize]
             if self.pick_on_frame is not False:
                 posx = None
                 posy = None
@@ -526,7 +527,7 @@ class ResizebleDraggableRectangle(ResizebleDraggablePatch):
                 
     def set_on(self, value):
         if value is not self.is_on():
-            if value is False:
+            if value is False and self.ax is not None:
                 for container in [
                         self.ax.patches,
                         self.ax.lines,
@@ -770,12 +771,16 @@ def in_interval(number, interval):
 class ModifiableSpanSelector(matplotlib.widgets.SpanSelector):
 
     def __init__(self, ax, **kwargs):
+        onsel = kwargs.pop('onselect', self.dummy)
         matplotlib.widgets.SpanSelector.__init__(
-            self, ax, direction='horizontal', useblit=False, **kwargs)
+            self, ax, onsel, direction='horizontal', useblit=False, **kwargs)
         # The tolerance in points to pick the rectangle sizes
         self.tolerance = 1
         self.on_move_cid = None
         self.range = None
+        
+    def dummy(self, *args, **kwargs):
+        pass
 
     def release(self, event):
         """When the button is realeased, the span stays in the screen and the
