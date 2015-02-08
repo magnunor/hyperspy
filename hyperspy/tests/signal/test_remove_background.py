@@ -6,7 +6,7 @@ from hyperspy import signals
 from hyperspy import components
 
 
-class TestRemoveBackground1D:
+class TestRemoveBackground1DGaussian:
 
     def setUp(self):
         gaussian = components.Gaussian()
@@ -22,4 +22,20 @@ class TestRemoveBackground1D:
         s1 = self.signal.remove_background(
             signal_range=(None, None),
             background_type='Gaussian')
+        assert_true(np.allclose(s1.data, np.zeros(len(s1.data))))
+
+class TestRemoveBackground1DPolynomial:
+
+    def setUp(self):
+        polynomial = components.Polynomial()
+        polynomial.coefficients.value = (10, 2, 3)
+        self.signal = signals.Spectrum(
+            polynomial.function(np.arange(0, 20, 0.01)))
+        self.signal.axes_manager[0].scale = 0.01
+        self.signal.metadata.Signal.binned = False
+
+    def test_background_remove_polynomial(self):
+        s1 = self.signal.remove_background(
+            signal_range=(None, None),
+            background_type='Polynomial')
         assert_true(np.allclose(s1.data, np.zeros(len(s1.data))))
