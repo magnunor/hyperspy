@@ -813,8 +813,8 @@ class Component(t.HasTraits):
         See also
         --------
         set_parameters_not_free
-        hyperspy.model.Model.set_parameters_free
-        hyperspy.model.Model.set_parameters_not_free
+        hyperspy.model.BaseModel.set_parameters_free
+        hyperspy.model.BaseModel.set_parameters_not_free
         """
 
         parameter_list = []
@@ -848,8 +848,8 @@ class Component(t.HasTraits):
         See also
         --------
         set_parameters_free
-        hyperspy.model.Model.set_parameters_free
-        hyperspy.model.Model.set_parameters_not_free
+        hyperspy.model.BaseModel.set_parameters_free
+        hyperspy.model.BaseModel.set_parameters_not_free
         """
 
         parameter_list = []

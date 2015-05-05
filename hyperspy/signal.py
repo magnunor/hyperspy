@@ -934,8 +934,8 @@ class Signal1DTools(object):
             smoother.edit_traits()
 
     def _remove_background_cli(self, signal_range, background_estimator):
-        from hyperspy.model import Model
-        model = Model(self)
+        from hyperspy.model import Model1D
+        model = Model1D(self)
         model.append(background_estimator)
         background_estimator.estimate_parameters(
             self,

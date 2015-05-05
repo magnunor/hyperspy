@@ -100,8 +100,8 @@ def create_model(signal, *args, **kwargs):
 
     from hyperspy._signals.eels import EELSSpectrum
     from hyperspy.models.eelsmodel import EELSModel
-    from hyperspy.model import Model
+    from hyperspy.model import Model1D
     if isinstance(signal, EELSSpectrum):
         return EELSModel(signal, *args, **kwargs)
     else:
-        return Model(signal, *args, **kwargs)
+        return Model1D(signal, *args, **kwargs)
