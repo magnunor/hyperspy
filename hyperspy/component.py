@@ -33,7 +33,7 @@ from hyperspy.exceptions import NavigationDimensionError
 
 class NoneFloat(t.CFloat):   # Lazy solution, but usable
     default_value = None
-    
+
     def validate(self, object, name, value):
         if value == "None" or value == u"None":
             value = None
@@ -96,14 +96,14 @@ class Parameter(t.HasTraits):
     _axes_manager = None
     __ext_bounded = False
     __ext_force_positive = False
-    
+
     # traitsui bugs out trying to make an editor for this, so always specify!
-    # (it bugs out, because both editor shares the object, and Array editors 
+    # (it bugs out, because both editor shares the object, and Array editors
     # don't like non-sequence objects). TextEditor() works well.
     value = t.Property( t.Either([t.CFloat(0), Array()]), editor=tu.TextEditor())
     units = t.Str('')
     free = t.Property( t.CBool(True) )
-    
+
     bmin = t.Property( NoneFloat(), label="Lower bounds" )
     bmax = t.Property( NoneFloat(), label="Upper bounds" )
 
@@ -470,7 +470,7 @@ class Parameter(t.HasTraits):
 
 class Component(t.HasTraits):
     __axes_manager = None
-    
+
     active = t.Property( t.CBool(True) )
     name = t.Property( t.Str('') )
 
@@ -756,6 +756,9 @@ class Component(t.HasTraits):
                                                parameter.std,
                                                parameter.units)
 
+    def __tempcall2d__(self, p, x, y, onlyfree=True):
+        self.fetch_values_from_array(p, onlyfree=onlyfree)
+        return self.function(x, y)
     def __tempcall__(self, p, x, onlyfree=True):
         self.fetch_values_from_array(p, onlyfree=onlyfree)
         return self.function(x)
