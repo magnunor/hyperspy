@@ -329,7 +329,7 @@ class BaseModel(list):
             self.signal._plot.signal_plot.ax_lines.remove(
                 self.signal._plot.signal_plot.ax_lines[2 + idx])
         list.remove(self, object)
-        object.model = None
+        thing.model = None
 
         if touch is True:
             self._touch()
@@ -1368,6 +1368,7 @@ class Model2D(BaseModel):
         # self._suspend_update = False
         self._adjust_position_all = None
         self._plot_components = False
+        self.components = ModelComponents(self)
 
     def __repr__(self):
         return u"<2D Model %s>".encode('utf8') % super(Model2D, self).__repr__()
@@ -1475,6 +1476,7 @@ class Model1D(BaseModel):
         self._suspend_update = False
         self._adjust_position_all = None
         self._plot_components = False
+        self.components = ModelComponents(self)
 
     @property
     def spectrum(self):
