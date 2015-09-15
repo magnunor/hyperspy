@@ -43,6 +43,8 @@ class Gaussian2D(Component):
     +------------+-----------+
     |   s_x,s_y  |   sigma   |
     +------------+-----------+
+    |    theta   | rotation  |
+    +------------+-----------+
 
     """
 
@@ -51,19 +53,23 @@ class Gaussian2D(Component):
                  sigma_x=1.,
                  sigma_y=1.,
                  centre_x=0.,
-                 centre_y=0,
+                 centre_y=0.,
+                 rotation=0.,
                 ):
         Component.__init__(self, ['A',
                                   'sigma_x',
                                   'sigma_y',
                                   'centre_x',
                                   'centre_y',
+                                  'rotation',
                                  ])
         self.A.value = A
         self.sigma_x.value = sigma_x
         self.sigma_y.value = sigma_y
         self.centre_x.value = centre_x
         self.centre_y.value = centre_y
+        self.rotation.value = rotation
+        self.rotation.free = False
 
     #TODO: add in boundaries and gradients for enhancement
 
@@ -73,9 +79,21 @@ class Gaussian2D(Component):
         sy = self.sigma_y.value
         x0 = self.centre_x.value
         y0 = self.centre_y.value
+        theta = self.rotation.value
+
+        temp_2sx2 = 2*sx**2
+        temp_2sy2 = 2*sy**2
+        temp_cos2_theta = math.cos(theta)**2
+        temp_sin2_theta = math.sin(theta)**2
+        temp_sin_theta2 = math.sin(2*theta)
+
+        a = temp_cos2_theta/temp_2sx2 + temp_sin2_theta/temp_2sy2
+        b = -temp_sin_theta2/(2*temp_2sx2) + temp_sin_theta2/(2*temp_2sy2)
+        c = temp_sin2_theta/temp_2sx2 + temp_cos2_theta/temp_2sy2
 
         return A * (1 / (sx * sy * pi2)) * np.exp(
-            -((x - x0) ** 2 / (2 * sx ** 2) +
-              (y - y0) ** 2 / (2 * sy ** 2)))
+            -(a*(x - x0) ** 2 +
+              2*b*(x - x0) * (y - y0) + 
+              c*(y - y0) ** 2))
 
    #TODO: add further useful properties of 2D gaussian e.g. ellipticity (sigma ratio), fwhm in each direction...
