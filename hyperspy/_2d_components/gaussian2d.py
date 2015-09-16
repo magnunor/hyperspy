@@ -23,6 +23,7 @@ import numpy as np
 from hyperspy.component import Component
 
 pi2 = 2 * math.pi
+sigma2fwhm = 2 * math.sqrt(2 * math.log(2))
 
 
 class Gaussian2D(Component):
@@ -81,19 +82,46 @@ class Gaussian2D(Component):
         y0 = self.centre_y.value
         theta = self.rotation.value
 
-        temp_2sx2 = 2*sx**2
-        temp_2sy2 = 2*sy**2
-        temp_cos2_theta = math.cos(theta)**2
-        temp_sin2_theta = math.sin(theta)**2
-        temp_sin_theta2 = math.sin(2*theta)
+        sx2 = sx**2
+        sy2 = sy**2
+        cos2_theta = math.cos(theta)**2
+        sin2_theta = math.sin(theta)**2
+        sin_theta2 = math.sin(2*theta)
 
-        a = temp_cos2_theta/temp_2sx2 + temp_sin2_theta/temp_2sy2
-        b = -temp_sin_theta2/(2*temp_2sx2) + temp_sin_theta2/(2*temp_2sy2)
-        c = temp_sin2_theta/temp_2sx2 + temp_cos2_theta/temp_2sy2
+        a = cos2_theta/(2*sx2) + sin2_theta/(2*sy2)
+        b = -sin_theta2/(4*sx2) + sin_theta2/(4*sy2)
+        c = sin2_theta/(2*sx2) + cos2_theta/(2*sy2)
 
         return A * (1 / (sx * sy * pi2)) * np.exp(
             -(a*(x - x0) ** 2 +
               2*b*(x - x0) * (y - y0) + 
               c*(y - y0) ** 2))
 
-   #TODO: add further useful properties of 2D gaussian e.g. ellipticity (sigma ratio), fwhm in each direction...
+
+    @property
+    def ellipticity(self):
+        return self.sigma_x.value/self.sigma_y.value
+
+    @property
+    def fwhm_x(self):
+        return self.sigma_x.value*sigma2fwhm
+
+    @fwhm_x.setter
+    def fwhm_x(self, value):
+        self.sigma_x.value = value/sigma2fwhm
+
+    @property
+    def fwhm_y(self):
+        return self.sigma_y.value*sigma2fwhm
+
+    @fwhm_y.setter
+    def fwhm_y(self, value):
+        self.sigma_y.value = value/sigma2fwhm
+
+    # Rotation compared to "x"-axis
+    @property
+    def rotation_degrees(self):
+        if self.sigma_x.value > self.sigma_y.value:
+            return math.degrees(self.rotation.value)
+        else:
+            return math.degrees(self.rotation.value-pi2/4)
