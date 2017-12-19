@@ -45,25 +45,22 @@ class LineInSignal2D(t.HasTraits):
 
     Attributes:
     -----------
-    position : float
-        The position of the vertical line in the one dimensional signal. Moving
-        the line changes the position but the reverse is not true.
+    x0, y0, x1, y1 : floats
+        Position of the line in scaled units.
+    ix0, iy0, ix1, iy1 : ints
+        Position of the line in pixel (or index) values.
+    length : float
+        Length of the line in scaled units.
+    ilength : float
+        Length of the line in pixel (or index) values.
     on : bool
         Turns on and off the line
     color : wx.Colour
         The color of the line. It automatically redraws the line.
 
     """
-    x0 = t.Float(0.)
-    y0 = t.Float(0.)
-    x1 = t.Float(1.)
-    y1 = t.Float(1.)
-    ix0 = t.Int(0)
-    iy0 = t.Int(0)
-    ix1 = t.Int(1)
-    iy1 = t.Int(1)
+    x0, y0, x1, y1 = t.Float(0.), t.Float(0.), t.Float(1.), t.Float(1.)
     length = t.Float(1.)
-    ilength = t.Float(1.)
     is_ok = t.Bool(False)
     on = t.Bool(False)
     # The following is disabled because as of traits 4.6 the Color trait
@@ -80,7 +77,8 @@ class LineInSignal2D(t.HasTraits):
                 signal.axes_manager.signal_dimension, 2)
 
         self.signal = signal
-        self.signal.plot()
+        if (self.signal._plot is None) or (not self.signal._plot.is_active()):
+            self.signal.plot()
         axis_dict0 = signal.axes_manager.signal_axes[0].get_axis_dictionary()
         axis_dict1 = signal.axes_manager.signal_axes[1].get_axis_dictionary()
         am = AxesManager([axis_dict1, axis_dict0])
@@ -107,10 +105,11 @@ class LineInSignal2D(t.HasTraits):
 
         if new is True and old is False:
             self._line = Line2DWidget(self.axes_manager)
+            self._line.position = self._get_initial_position()
             self._line.set_mpl_ax(self.signal._plot.signal_plot.ax)
             self._line.linewidth = 1
-            self._line.position = self._get_initial_position()
             self._color_changed("black", "black")
+            self.update_position()
             self._line.events.changed.connect(self.update_position)
             # There is not need to call draw because setting the
             # color calls it.
@@ -123,15 +122,9 @@ class LineInSignal2D(t.HasTraits):
     def update_position(self, *args, **kwargs):
         if not self.signal._plot.is_active():
             return
-        am = self.axes_manager
-        (self.x0, self.y0), (self.x1, self.y1) = self._line.position
-        self.ix0 = am[0].value2index(self.x0)
-        self.iy0 = am[1].value2index(self.y0)
-        self.ix1 = am[0].value2index(self.x1)
-        self.iy1 = am[1].value2index(self.y1)
-        self.length = self._line.get_line_length()[0]
-        pos = ((self.ix0, self.iy0), (self.ix1, self.iy1))
-        self.ilength = np.linalg.norm(np.diff(pos, axis=0), axis=1)[0]
+        pos = self._line.position
+        (self.x0, self.y0), (self.x1, self.y1) = pos
+        self.length = np.linalg.norm(np.diff(pos, axis=0), axis=1)[0]
 
     def _color_changed(self, old, new):
         if self.on is False:
@@ -157,31 +150,37 @@ class Signal2DCalibration(LineInSignal2D):
         self.units = self.signal.axes_manager.signal_axes[0].units
         self.scale = self.signal.axes_manager.signal_axes[0].scale
         self.on = True
-        self.last_calibration_stored = True
+
+    def _new_length_changed(self, old, new):
+        # If the line position is invalid or the new length is not defined do
+        # nothing
+        if np.isnan(self.x0) or np.isnan(self.y0) or np.isnan(self.x1)\
+           or np.isnan(self.y1) or self.new_length is t.Undefined:
+            return
+        self.scale = self.signal._get_signal2d_scale(
+                self.x0, self.y0, self.x1, self.y1, self.new_length)
 
     def _length_changed(self, old, new):
-        self._update_calibration()
-
-    def _update_calibration(self, *args, **kwargs):
-        # If the span selector or the new range values are not defined do
+        # If the line position is invalid or the new length is not defined do
         # nothing
-        if np.isnan(self.ix0) or np.isnan(self.iy0) or np.isnan(self.ix1) or\
-                np.isnan(self.iy1) or t.Undefined in (self.new_length, ):
+        if np.isnan(self.x0) or np.isnan(self.y0) or np.isnan(self.x1)\
+           or np.isnan(self.y1) or self.new_length is t.Undefined:
             return
-        self.scale = self.new_length/self.ilength
+        self.scale = self.signal._get_signal2d_scale(
+                self.x0, self.y0, self.x1, self.y1, self.new_length)
 
     def apply(self):
         if self.new_length is t.Undefined:
             _logger.warn("Input a new length before pressing apply.")
             return
-        self._update_calibration()
-        s_axes = self.signal.axes_manager.signal_axes
-        s_axes[0].scale = self.scale
-        s_axes[1].scale = self.scale
-        s_axes[0].units = self.units
-        s_axes[1].units = self.units
+        x0, y0, x1, y1 = self.x0, self.y0, self.x1, self.y1
+        if np.isnan(x0) or np.isnan(y0) or np.isnan(x1) or np.isnan(y1):
+            _logger.warn("Line position is not valid")
+            return
+        self.signal._calibrate(
+                x0=x0, y0=y0, x1=x1, y1=y1, new_length=self.new_length,
+                units=self.units)
         self.signal._replot()
-        self.last_calibration_stored = True
 
 
 class SpanSelectorInSignal1D(t.HasTraits):

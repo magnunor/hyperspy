@@ -600,10 +600,78 @@ class Signal2D(BaseSignal, CommonSignal2D):
         if return_shifts:
             return shifts
 
-    def calibrate(self, display=True, toolkit=None):
+    def calibrate(
+            self, x0=None, y0=None, x1=None, y1=None, new_length=None,
+            units=None, scaled_input=True, interactive=True, display=True,
+            toolkit=None):
+        """Calibrate the x and y signal dimensions.
+
+        Can be used either interactively, or by passing values as parameters.
+
+        Parameters
+        ----------
+        x0, y0, x1, y1 : scalars, optional
+            If interactive is False, these must be set. If given in non-scaled
+            valued (i.e. not in pixels), scaled_input must be set to False.
+        new_length : scalar, optional
+            If interactive is False, these must be set.
+        units : string, optional
+            If interactive is False, this can be used to set the axes units.
+        scaled_input : bool, default True
+            Used if interactive is False.
+        interactive : bool, default True
+            If True, will use a plot with an interactive line for calibration.
+            If False, x0, y0, x1, y1 and new_length must be set.
+        display : bool, default True
+        toolkit : string, optional
+
+        Examples
+        --------
+        >>> s = hs.signals.Signal2D(np.random.random((100, 100)))
+        >>> s.calibrate()
+
+        Running non-interactively
+
+        >>> s = hs.signals.Signal2D(np.random.random((100, 100)))
+        >>> s.calibrate(x0=10, y0=10, x1=60, y1=10, new_length=100,
+        ...     interactive=False, units='nm')
+
+        """
         self._check_signal_dimension_equals_two()
-        calibration = Signal2DCalibration(self)
-        return calibration.gui(display=display, toolkit=toolkit)
+        if interactive:
+            calibration = Signal2DCalibration(self)
+            calibration.gui(display=display, toolkit=toolkit)
+        else:
+            if None in (x0, y0, x1, y1, new_length):
+                raise ValueError(
+                        "With interactive=False x0, y0, x1, y1 and new_length "
+                        "must be set.")
+            self._calibrate(
+                    x0, y0, x1, y1, new_length,
+                    scaled_input=scaled_input, units=units)
+
+    def _calibrate(
+            self, x0, y0, x1, y1, new_length, scaled_input=True, units=None):
+        scale = self._get_signal2d_scale(
+                x0, y0, x1, y1, new_length, scaled_input)
+        sa = self.axes_manager.signal_axes
+        sa[0].scale = scale
+        sa[1].scale = scale
+        if units is not None:
+            sa[0].units = units
+            sa[1].units = units
+
+    def _get_signal2d_scale(self, x0, y0, x1, y1, length, scaled_input=True):
+        sa = self.axes_manager.signal_axes
+        if scaled_input:
+            x0 = sa[0].value2index(x0)
+            y0 = sa[1].value2index(y0)
+            x1 = sa[0].value2index(x1)
+            y1 = sa[1].value2index(y1)
+        pos = ((x0, y0), (x1, y1))
+        ilength = np.linalg.norm(np.diff(pos, axis=0), axis=1)[0]
+        scale = length/ilength
+        return scale
 
     def crop_image(self, top=None, bottom=None,
                    left=None, right=None):
