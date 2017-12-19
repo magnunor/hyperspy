@@ -30,6 +30,7 @@ from hyperspy.misc.math_tools import symmetrize, antisymmetrize
 from hyperspy.signal import BaseSignal
 from hyperspy._signals.lazy import LazySignal
 from hyperspy._signals.common_signal2d import CommonSignal2D
+from hyperspy.signal_tools import Signal2DCalibration
 from hyperspy.docstrings.plot import (
     BASE_PLOT_DOCSTRING, PLOT2D_DOCSTRING, KWARGS_DOCSTRING)
 
@@ -598,6 +599,11 @@ class Signal2D(BaseSignal, CommonSignal2D):
         self.events.data_changed.trigger(obj=self)
         if return_shifts:
             return shifts
+
+    def calibrate(self, display=True, toolkit=None):
+        self._check_signal_dimension_equals_two()
+        calibration = Signal2DCalibration(self)
+        return calibration.gui(display=display, toolkit=toolkit)
 
     def crop_image(self, top=None, bottom=None,
                    left=None, right=None):
