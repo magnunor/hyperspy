@@ -664,13 +664,13 @@ class Signal2D(BaseSignal, CommonSignal2D):
     def _get_signal2d_scale(self, x0, y0, x1, y1, length, scaled_input=True):
         sa = self.axes_manager.signal_axes
         if scaled_input:
-            x0 = sa[0].value2index(x0)
-            y0 = sa[1].value2index(y0)
-            x1 = sa[0].value2index(x1)
-            y1 = sa[1].value2index(y1)
+            x0 = x0/sa[0].scale
+            y0 = y0/sa[1].scale
+            x1 = x1/sa[0].scale
+            y1 = y1/sa[1].scale
         pos = ((x0, y0), (x1, y1))
-        ilength = np.linalg.norm(np.diff(pos, axis=0), axis=1)[0]
-        scale = length/ilength
+        old_length = np.linalg.norm(np.diff(pos, axis=0), axis=1)[0]
+        scale = length/old_length
         return scale
 
     def crop_image(self, top=None, bottom=None,
