@@ -129,6 +129,96 @@ class TestAlignTools:
         assert np.all(d_al == self.aligned)
 
 
+@lazifyTestClass
+class TestGetSignal2DScale:
+
+    def test_default_scale(self):
+        s = hs.signals.Signal2D(np.ones((100, 50)))
+        x0, y0, x1, y1, length = 10., 10., 30., 10., 80.
+        scale0 = s._get_signal2d_scale(
+                x0=x0, y0=y0, x1=x1, y1=y1, length=length, scaled_input=True)
+        scale1 = s._get_signal2d_scale(
+                x0=x0, y0=y0, x1=x1, y1=y1, length=length, scaled_input=False)
+        # With the default scale (1), scale0 and scale1 have the same value
+        assert scale0 == scale1 == 4.
+
+    def test_non_one_scale(self):
+        s = hs.signals.Signal2D(np.ones((100, 50)))
+        sa = s.axes_manager.signal_axes
+        x0, y0, x1, y1, length = 10., 10., 30., 10., 80.
+        sa[0].scale, sa[1].scale = 0.1, 0.1
+        scale0 = s._get_signal2d_scale(
+                x0=x0, y0=y0, x1=x1, y1=y1, length=length, scaled_input=True)
+        scale1 = s._get_signal2d_scale(
+                x0=x0, y0=y0, x1=x1, y1=y1, length=length, scaled_input=False)
+        assert scale0 == 0.4
+        assert scale1 == 4
+
+    def test_diagonal(self):
+        length = (200**2 + 100**2)**0.5
+        s = hs.signals.Signal2D(np.ones((100, 200)))
+        sa = s.axes_manager.signal_axes
+        sa[0].scale, sa[1].scale = 0.5, 1.
+        scale0 = s._get_signal2d_scale(
+                x0=0, y0=0, x1=100, y1=100, length=length/2, scaled_input=True)
+        scale1 = s._get_signal2d_scale(
+                x0=0, y0=0, x1=200, y1=100, length=length, scaled_input=False)
+        assert scale0 == 0.5
+        assert scale1 == 1.
+
+
+@lazifyTestClass
+class TestCalibrate2D:
+
+    def test_cli_default_scale(self):
+        s = hs.signals.Signal2D(np.ones((100, 100)))
+        x0, y0, x1, y1, new_length = 10., 10., 30., 10., 5.
+        units = 'test'
+        s._calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length,
+                     units=units, scaled_input=True)
+        sa = s.axes_manager.signal_axes
+        assert sa[0].units == sa[1].units == units
+        assert sa[0].scale == sa[1].scale == 0.25
+
+    def test_cli_non_one_scale(self):
+        s = hs.signals.Signal2D(np.ones((100, 100)))
+        sa = s.axes_manager.signal_axes
+        sa[0].scale, sa[1].scale = 0.25, 0.25
+        x0, y0, x1, y1, new_length = 10., 10., 10., 20., 40.
+        s._calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length,
+                     scaled_input=True)
+        assert sa[0].scale == sa[1].scale == 1.
+        s._calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length,
+                     scaled_input=False)
+        assert sa[0].scale == sa[1].scale == 4.
+
+    def test_non_interactive_default_scale(self):
+        s = hs.signals.Signal2D(np.ones((200, 200)))
+        x0, y0, x1, y1, new_length = 10., 10., 10., 20., 40.
+        units = 'nm'
+        s.calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length,
+                    scaled_input=True, interactive=False, units=units)
+        sa = s.axes_manager.signal_axes
+        assert sa[0].units == sa[1].units == units
+        assert sa[0].scale == sa[1].scale == 4.
+        s.calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length,
+                    scaled_input=False, interactive=False)
+        assert sa[0].scale == sa[1].scale == 4.
+        assert sa[0].units == sa[1].units == units
+
+    def test_non_interactive_non_one_scale(self):
+        s = hs.signals.Signal2D(np.ones((200, 200)))
+        x0, y0, x1, y1, new_length = 10., 10., 10., 20., 40.
+        sa = s.axes_manager.signal_axes
+        sa[0].scale, sa[1].scale = 5., 5.
+        s.calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length,
+                    scaled_input=True, interactive=False)
+        assert sa[0].scale == sa[1].scale == 20.
+        s.calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length,
+                    scaled_input=False, interactive=False)
+        assert sa[0].scale == sa[1].scale == 4.
+
+
 def test_add_ramp():
     s = hs.signals.Signal2D(np.indices((3, 3)).sum(axis=0) + 4)
     s.add_ramp(-1, -1, -4)
