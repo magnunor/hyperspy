@@ -76,7 +76,7 @@ class LineInSignal2D(t.HasTraits):
                 signal.axes_manager.signal_dimension, 2)
 
         self.signal = signal
-        if (self.signal._plot is None) or (not self.signal._plot.is_active()):
+        if (self.signal._plot is None) or (not self.signal._plot.is_active):
             self.signal.plot()
         axis_dict0 = signal.axes_manager.signal_axes[0].get_axis_dictionary()
         axis_dict1 = signal.axes_manager.signal_axes[1].get_axis_dictionary()
@@ -99,7 +99,7 @@ class LineInSignal2D(t.HasTraits):
         return position
 
     def switch_on_off(self, obj, trait_name, old, new):
-        if not self.signal._plot.is_active():
+        if not self.signal._plot.is_active:
             return
 
         if new is True and old is False:
@@ -119,7 +119,7 @@ class LineInSignal2D(t.HasTraits):
             self.draw()
 
     def update_position(self, *args, **kwargs):
-        if not self.signal._plot.is_active():
+        if not self.signal._plot.is_active:
             return
         pos = self._line.position
         (self.x0, self.y0), (self.x1, self.y1) = pos
