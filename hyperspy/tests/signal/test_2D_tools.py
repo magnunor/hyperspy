@@ -18,7 +18,7 @@
 
 import sys
 from unittest import mock
-
+import pytest
 
 import numpy.testing as npt
 import numpy as np
@@ -129,45 +129,53 @@ class TestAlignTools:
         assert np.all(d_al == self.aligned)
 
 
-@lazifyTestClass
 class TestGetSignal2DScale:
 
     def test_default_scale(self):
         s = hs.signals.Signal2D(np.ones((100, 50)))
         x0, y0, x1, y1, length = 10., 10., 30., 10., 80.
         scale0 = s._get_signal2d_scale(
-                x0=x0, y0=y0, x1=x1, y1=y1, length=length, scaled_input=True)
+                x0=x0, y0=y0, x1=x1, y1=y1, length=length)
+        x0, y0, x1, y1 = 10, 10, 30, 10
         scale1 = s._get_signal2d_scale(
-                x0=x0, y0=y0, x1=x1, y1=y1, length=length, scaled_input=False)
+                x0=x0, y0=y0, x1=x1, y1=y1, length=length)
         # With the default scale (1), scale0 and scale1 have the same value
         assert scale0 == scale1 == 4.
 
     def test_non_one_scale(self):
         s = hs.signals.Signal2D(np.ones((100, 50)))
         sa = s.axes_manager.signal_axes
-        x0, y0, x1, y1, length = 10., 10., 30., 10., 80.
+        x0, y0, x1, y1, length = 4., 2., 4., 6., 16.
         sa[0].scale, sa[1].scale = 0.1, 0.1
-        scale0 = s._get_signal2d_scale(
-                x0=x0, y0=y0, x1=x1, y1=y1, length=length, scaled_input=True)
-        scale1 = s._get_signal2d_scale(
-                x0=x0, y0=y0, x1=x1, y1=y1, length=length, scaled_input=False)
+        scale0 = s._get_signal2d_scale(x0=x0, y0=y0, x1=x1, y1=y1, length=length)
+        x0, y0, x1, y1 = 4, 2, 4, 6
+        scale1 = s._get_signal2d_scale(x0=x0, y0=y0, x1=x1, y1=y1, length=length)
         assert scale0 == 0.4
         assert scale1 == 4
 
     def test_diagonal(self):
-        length = (200**2 + 100**2)**0.5
+        length = (100**2 + 50**2)**0.5
         s = hs.signals.Signal2D(np.ones((100, 200)))
         sa = s.axes_manager.signal_axes
         sa[0].scale, sa[1].scale = 0.5, 1.
         scale0 = s._get_signal2d_scale(
-                x0=0, y0=0, x1=100, y1=100, length=length/2, scaled_input=True)
+                x0=0., y0=0., x1=50., y1=50., length=length/2)
         scale1 = s._get_signal2d_scale(
-                x0=0, y0=0, x1=200, y1=100, length=length, scaled_input=False)
+                x0=0, y0=0, x1=100, y1=50, length=length)
         assert scale0 == 0.5
         assert scale1 == 1.
 
+    def test_float_and_integer_input(self):
+        s = hs.signals.Signal2D(np.ones((100, 50)))
+        with pytest.raises(TypeError):
+            s._get_signal2d_scale(x0=2., y0=1, x1=3, y1=5, length=2)
 
-@lazifyTestClass
+    def test_string_input(self):
+        s = hs.signals.Signal2D(np.ones((100, 50)))
+        with pytest.raises(TypeError):
+            s._get_signal2d_scale(x0="2.", y0="1", x1="3", y1="5", length=2)
+
+
 class TestCalibrate2D:
 
     def test_cli_default_scale(self):
@@ -175,7 +183,7 @@ class TestCalibrate2D:
         x0, y0, x1, y1, new_length = 10., 10., 30., 10., 5.
         units = 'test'
         s._calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length,
-                     units=units, scaled_input=True)
+                     units=units)
         sa = s.axes_manager.signal_axes
         assert sa[0].units == sa[1].units == units
         assert sa[0].scale == sa[1].scale == 0.25
@@ -185,11 +193,10 @@ class TestCalibrate2D:
         sa = s.axes_manager.signal_axes
         sa[0].scale, sa[1].scale = 0.25, 0.25
         x0, y0, x1, y1, new_length = 10., 10., 10., 20., 40.
-        s._calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length,
-                     scaled_input=True)
+        s._calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length)
         assert sa[0].scale == sa[1].scale == 1.
-        s._calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length,
-                     scaled_input=False)
+        x0, y0, x1, y1 = 10, 10, 10, 20
+        s._calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length)
         assert sa[0].scale == sa[1].scale == 4.
 
     def test_non_interactive_default_scale(self):
@@ -197,12 +204,13 @@ class TestCalibrate2D:
         x0, y0, x1, y1, new_length = 10., 10., 10., 20., 40.
         units = 'nm'
         s.calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length,
-                    scaled_input=True, interactive=False, units=units)
+                    interactive=False, units=units)
         sa = s.axes_manager.signal_axes
         assert sa[0].units == sa[1].units == units
         assert sa[0].scale == sa[1].scale == 4.
+        x0, y0, x1, y1 = 10, 10, 10, 20
         s.calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length,
-                    scaled_input=False, interactive=False)
+                    interactive=False)
         assert sa[0].scale == sa[1].scale == 4.
         assert sa[0].units == sa[1].units == units
 
@@ -212,10 +220,11 @@ class TestCalibrate2D:
         sa = s.axes_manager.signal_axes
         sa[0].scale, sa[1].scale = 5., 5.
         s.calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length,
-                    scaled_input=True, interactive=False)
+                    interactive=False)
         assert sa[0].scale == sa[1].scale == 20.
+        x0, y0, x1, y1 = 10, 10, 10, 20
         s.calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length,
-                    scaled_input=False, interactive=False)
+                    interactive=False)
         assert sa[0].scale == sa[1].scale == 4.
 
 

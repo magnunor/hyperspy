@@ -602,7 +602,7 @@ class Signal2D(BaseSignal, CommonSignal2D):
 
     def calibrate(
             self, x0=None, y0=None, x1=None, y1=None, new_length=None,
-            units=None, scaled_input=True, interactive=True, display=True,
+            units=None, interactive=True, display=True,
             toolkit=None):
         """Calibrate the x and y signal dimensions.
 
@@ -611,14 +611,14 @@ class Signal2D(BaseSignal, CommonSignal2D):
         Parameters
         ----------
         x0, y0, x1, y1 : scalars, optional
-            If interactive is False, these must be set. If given in non-scaled
-            valued (i.e. not in pixels), scaled_input must be set to False.
+            If interactive is False, these must be set. If given in floats
+            the input will be in scaled axis values. If given in integers,
+            the input will be in non-scaled pixel values. Similar to how
+            integer and float input works when slicing using isig and inav.
         new_length : scalar, optional
             If interactive is False, these must be set.
         units : string, optional
             If interactive is False, this can be used to set the axes units.
-        scaled_input : bool, default True
-            Used if interactive is False.
         interactive : bool, default True
             If True, will use a plot with an interactive line for calibration.
             If False, x0, y0, x1, y1 and new_length must be set.
@@ -646,14 +646,13 @@ class Signal2D(BaseSignal, CommonSignal2D):
                 raise ValueError(
                         "With interactive=False x0, y0, x1, y1 and new_length "
                         "must be set.")
+
             self._calibrate(
-                    x0, y0, x1, y1, new_length,
-                    scaled_input=scaled_input, units=units)
+                    x0, y0, x1, y1, new_length, units=units)
 
     def _calibrate(
-            self, x0, y0, x1, y1, new_length, scaled_input=True, units=None):
-        scale = self._get_signal2d_scale(
-                x0, y0, x1, y1, new_length, scaled_input)
+            self, x0, y0, x1, y1, new_length, units=None):
+        scale = self._get_signal2d_scale(x0, y0, x1, y1, new_length)
         sa = self.axes_manager.signal_axes
         sa[0].scale = scale
         sa[1].scale = scale
@@ -661,13 +660,39 @@ class Signal2D(BaseSignal, CommonSignal2D):
             sa[0].units = units
             sa[1].units = units
 
-    def _get_signal2d_scale(self, x0, y0, x1, y1, length, scaled_input=True):
+    def _get_signal2d_scale(self, x0, y0, x1, y1, length):
+        dtypes = set([type(i) for i in [x0, y0, x1, y1]])
+        if len(dtypes) == 1:
+            dtype = dtypes.pop()
+            if dtype is int:
+                scaled_input = False
+            elif dtype is float:
+                scaled_input = True
+            else:
+                raise TypeError(
+                        "x0, y0, x1 and y1 has type {0}, which is not "
+                        "recognized".format(dtype))
+        else:
+            raise TypeError(
+                    "x0, y0, x1, y1 must all be the same type, either "
+                    "floats or integers.")
         sa = self.axes_manager.signal_axes
+        units = set([a.units for a in sa])
+        if len(units) != 1:
+            _logger.warning(
+                    "The signal axes does not have the same units, "
+                    "this might lead to strange values after this calibration")
         if scaled_input:
-            x0 = x0/sa[0].scale
-            y0 = y0/sa[1].scale
-            x1 = x1/sa[0].scale
-            y1 = y1/sa[1].scale
+            scales = set([a.scale for a in sa])
+            if len(scales) != 1:
+                _logger.warning(
+                        "The previous scaling is not the same for both axes, "
+                        "this might lead to strange values after this "
+                        "calibration")
+            x0 = sa[0].value2index(x0)
+            y0 = sa[1].value2index(y0)
+            x1 = sa[0].value2index(x1)
+            y1 = sa[1].value2index(y1)
         pos = ((x0, y0), (x1, y1))
         old_length = np.linalg.norm(np.diff(pos, axis=0), axis=1)[0]
         scale = length/old_length
