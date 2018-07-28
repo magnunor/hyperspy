@@ -209,6 +209,17 @@ signals:
 
     >>> hs.datasets.example_signals.EDS_TEM_Spectrum().plot()
 
+.. versionadded:: 1.4
+    :py:mod:`~.datasets.artificial_data`
+
+There are also artificial datasets, which are made to resemble real
+experimental data.
+
+.. code-block:: python
+
+    >>> s = hs.datasets.artificial_data.get_core_loss_eels_signal()
+    >>> s.plot()
+
 .. _eelsdb-label:
 
 .. versionadded:: 1.0
@@ -542,7 +553,7 @@ Messages log
 
 HyperSpy writes messages to the `Python logger
 <https://docs.python.org/3/howto/logging.html#logging-basic-tutorial>`_. The
-deafault log level is "WARNING", meaning that only warnings and more severe
+default log level is "WARNING", meaning that only warnings and more severe
 event messages will be displayed. The default can be set in the
 :ref:`preferences <configuring-hyperspy-label>`. Alternatively, it can be set
 using :py:func:`~.logger.set_log_level` e.g.:

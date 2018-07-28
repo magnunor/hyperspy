@@ -29,11 +29,11 @@ from hyperspy._signals.signal1d import (Signal1D, LazySignal1D)
 from hyperspy.misc.elements import elements as elements_db
 import hyperspy.axes
 from hyperspy.defaults_parser import preferences
-from hyperspy.external.progressbar import progressbar
 from hyperspy.components1d import PowerLaw
 from hyperspy.misc.utils import (
     isiterable, closest_power_of_two, underline, signal_range_from_roi)
 from hyperspy.ui_registry import add_gui_method, DISPLAY_DT, TOOLKIT_DT
+from hyperspy.docstrings.signal1d import CROP_PARAMETER_DOC
 
 
 _logger = logging.getLogger(__name__)
@@ -206,6 +206,7 @@ class EELSSpectrum_mixin:
             mask=None,
             signal_range=None,
             show_progressbar=None,
+            crop=True,
             **kwargs):
         """Align the zero-loss peak.
 
@@ -243,6 +244,7 @@ class EELSSpectrum_mixin:
         show_progressbar : None or bool
             If True, display a progress bar. If None the default is set in
             `preferences`.
+        %s
 
         Examples
         --------
@@ -297,8 +299,12 @@ class EELSSpectrum_mixin:
         for signal in also_align + [self]:
             shift_array = -zlpc.data + mean_
             if zlpc._lazy:
+                # We must compute right now because otherwise any changes to the
+                # axes_manager of the signal later in the workflow may result in
+                # a wrong shift_array
                 shift_array = shift_array.compute()
-            signal.shift1D(shift_array, show_progressbar=show_progressbar)
+            signal.shift1D(
+                shift_array, crop=crop, show_progressbar=show_progressbar)
 
         if calibrate is True:
             zlpc = estimate_zero_loss_peak_centre(
@@ -310,8 +316,6 @@ class EELSSpectrum_mixin:
             return
         left, right = -3., 3.
         if calibrate is False:
-            mean_ = np.nanmean(estimate_zero_loss_peak_centre(
-                self, mask, signal_range).data)
             left += mean_
             right += mean_
 
@@ -327,12 +331,14 @@ class EELSSpectrum_mixin:
                 also_align=also_align,
                 show_progressbar=show_progressbar,
                 mask=mask,
+                crop=crop,
                 **kwargs)
         if calibrate is True:
             zlpc = estimate_zero_loss_peak_centre(
                 self, mask=mask, signal_range=signal_range)
             substract_from_offset(np.nanmean(zlpc.data),
                                   also_align + [self])
+    align_zero_loss_peak.__doc__ %= CROP_PARAMETER_DOC
 
     def estimate_elastic_scattering_intensity(
             self, threshold, show_progressbar=None):
@@ -1007,7 +1013,7 @@ class EELSSpectrum_mixin:
                                 t=None,
                                 delta=0.5,
                                 full_output=False):
-        """Calculate the complex
+        r"""Calculate the complex
         dielectric function from a single scattering distribution (SSD) using
         the Kramers-Kronig relations.
 
@@ -1065,7 +1071,10 @@ class EELSSpectrum_mixin:
         -------
         eps: DielectricFunction instance
             The complex dielectric function results,
-                $\epsilon = \epsilon_1 + i*\epsilon_2$,
+
+                .. math::
+                    \epsilon = \epsilon_1 + i*\epsilon_2,
+
             contained in an DielectricFunction instance.
         output: Dictionary (optional)
             A dictionary of optional outputs with the following keys:
@@ -1195,9 +1204,11 @@ class EELSSpectrum_mixin:
                                  "thickness information, not both")
             elif n is not None:
                 # normalize using the refractive index.
-                K = (Im / eaxis).sum(axis=axis.index_in_array) * axis.scale
-                K = (K / (np.pi / 2) / (1 - 1. / n ** 2)).reshape(
-                    np.insert(K.shape, axis.index_in_array, 1))
+                K = (Im / eaxis).sum(axis=axis.index_in_array, keepdims=True) \
+                    * axis.scale
+                K = (K / (np.pi / 2) / (1 - 1. / n ** 2))
+                # K = (K / (np.pi / 2) / (1 - 1. / n ** 2)).reshape(
+                #    np.insert(K.shape, axis.index_in_array, 1))
                 # Calculate the thickness only if possible and required
                 if zlp is not None and (full_output is True or
                                         iterations > 1):
@@ -1275,9 +1286,11 @@ class EELSSpectrum_mixin:
                 self.tmp_parameters.filename +
                 '_CDF_after_Kramers_Kronig_transform')
         if 'thickness' in output:
-            thickness = eps._get_navigation_signal(
-                data=te[self.axes_manager._get_data_slice(
-                    [(axis.index_in_array, 0)])])
+            # As above,prevent errors if the signal is a single spectrum
+            if len(te) != 1:
+                te = te[self.axes_manager._get_data_slice(
+                        [(axis.index_in_array, 0)])]
+            thickness = eps._get_navigation_signal(data=te)
             thickness.metadata.General.title = (
                 self.metadata.General.title + ' thickness '
                 '(calculated using Kramers-Kronig analysis)')
