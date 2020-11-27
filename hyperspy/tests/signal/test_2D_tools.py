@@ -179,22 +179,19 @@ class TestAlignTools:
 
 
 class TestGetSignal2DScale:
-
     def test_default_scale(self):
         s = hs.signals.Signal2D(np.ones((100, 50)))
-        x0, y0, x1, y1, length = 10., 10., 30., 10., 80.
-        scale0 = s._get_signal2d_scale(
-                x0=x0, y0=y0, x1=x1, y1=y1, length=length)
+        x0, y0, x1, y1, length = 10.0, 10.0, 30.0, 10.0, 80.0
+        scale0 = s._get_signal2d_scale(x0=x0, y0=y0, x1=x1, y1=y1, length=length)
         x0, y0, x1, y1 = 10, 10, 30, 10
-        scale1 = s._get_signal2d_scale(
-                x0=x0, y0=y0, x1=x1, y1=y1, length=length)
+        scale1 = s._get_signal2d_scale(x0=x0, y0=y0, x1=x1, y1=y1, length=length)
         # With the default scale (1), scale0 and scale1 have the same value
-        assert scale0 == scale1 == 4.
+        assert scale0 == scale1 == 4.0
 
     def test_non_one_scale(self):
         s = hs.signals.Signal2D(np.ones((100, 50)))
         sa = s.axes_manager.signal_axes
-        x0, y0, x1, y1, length = 4., 2., 4., 6., 16.
+        x0, y0, x1, y1, length = 4.0, 2.0, 4.0, 6.0, 16.0
         sa[0].scale, sa[1].scale = 0.1, 0.1
         scale0 = s._get_signal2d_scale(x0=x0, y0=y0, x1=x1, y1=y1, length=length)
         x0, y0, x1, y1 = 4, 2, 4, 6
@@ -203,21 +200,16 @@ class TestGetSignal2DScale:
         assert scale1 == 4
 
     def test_diagonal(self):
-        length = (100**2 + 50**2)**0.5
+        length = (100 ** 2 + 50 ** 2) ** 0.5
         s = hs.signals.Signal2D(np.ones((100, 200)))
         sa = s.axes_manager.signal_axes
-        sa[0].scale, sa[1].scale = 0.5, 1.
+        sa[0].scale, sa[1].scale = 0.5, 1.0
         scale0 = s._get_signal2d_scale(
-                x0=0., y0=0., x1=50., y1=50., length=length/2)
-        scale1 = s._get_signal2d_scale(
-                x0=0, y0=0, x1=100, y1=50, length=length)
+            x0=0.0, y0=0.0, x1=50.0, y1=50.0, length=length / 2
+        )
+        scale1 = s._get_signal2d_scale(x0=0, y0=0, x1=100, y1=50, length=length)
         assert scale0 == 0.5
-        assert scale1 == 1.
-
-    def test_float_and_integer_input(self):
-        s = hs.signals.Signal2D(np.ones((100, 50)))
-        with pytest.raises(TypeError):
-            s._get_signal2d_scale(x0=2., y0=1, x1=3, y1=5, length=2)
+        assert scale1 == 1.0
 
     def test_string_input(self):
         s = hs.signals.Signal2D(np.ones((100, 50)))
@@ -226,13 +218,11 @@ class TestGetSignal2DScale:
 
 
 class TestCalibrate2D:
-
     def test_cli_default_scale(self):
         s = hs.signals.Signal2D(np.ones((100, 100)))
-        x0, y0, x1, y1, new_length = 10., 10., 30., 10., 5.
-        units = 'test'
-        s._calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length,
-                     units=units)
+        x0, y0, x1, y1, new_length = 10.0, 10.0, 30.0, 10.0, 5.0
+        units = "test"
+        s._calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length, units=units)
         sa = s.axes_manager.signal_axes
         assert sa[0].units == sa[1].units == units
         assert sa[0].scale == sa[1].scale == 0.25
@@ -241,40 +231,50 @@ class TestCalibrate2D:
         s = hs.signals.Signal2D(np.ones((100, 100)))
         sa = s.axes_manager.signal_axes
         sa[0].scale, sa[1].scale = 0.25, 0.25
-        x0, y0, x1, y1, new_length = 10., 10., 10., 20., 40.
+        x0, y0, x1, y1, new_length = 10.0, 10.0, 10.0, 20.0, 40.0
         s._calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length)
-        assert sa[0].scale == sa[1].scale == 1.
+        assert sa[0].scale == sa[1].scale == 1.0
         x0, y0, x1, y1 = 10, 10, 10, 20
         s._calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length)
-        assert sa[0].scale == sa[1].scale == 4.
+        assert sa[0].scale == sa[1].scale == 4.0
 
     def test_non_interactive_default_scale(self):
         s = hs.signals.Signal2D(np.ones((200, 200)))
-        x0, y0, x1, y1, new_length = 10., 10., 10., 20., 40.
-        units = 'nm'
-        s.calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length,
-                    interactive=False, units=units)
+        x0, y0, x1, y1, new_length = 10.0, 10.0, 10.0, 20.0, 40.0
+        units = "nm"
+        s.calibrate(
+            x0=x0,
+            y0=y0,
+            x1=x1,
+            y1=y1,
+            new_length=new_length,
+            interactive=False,
+            units=units,
+        )
         sa = s.axes_manager.signal_axes
         assert sa[0].units == sa[1].units == units
-        assert sa[0].scale == sa[1].scale == 4.
+        assert sa[0].scale == sa[1].scale == 4.0
         x0, y0, x1, y1 = 10, 10, 10, 20
-        s.calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length,
-                    interactive=False)
-        assert sa[0].scale == sa[1].scale == 4.
+        s.calibrate(
+            x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length, interactive=False
+        )
+        assert sa[0].scale == sa[1].scale == 4.0
         assert sa[0].units == sa[1].units == units
 
     def test_non_interactive_non_one_scale(self):
         s = hs.signals.Signal2D(np.ones((200, 200)))
-        x0, y0, x1, y1, new_length = 10., 10., 10., 20., 40.
+        x0, y0, x1, y1, new_length = 10.0, 10.0, 10.0, 20.0, 40.0
         sa = s.axes_manager.signal_axes
-        sa[0].scale, sa[1].scale = 5., 5.
-        s.calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length,
-                    interactive=False)
-        assert sa[0].scale == sa[1].scale == 20.
+        sa[0].scale, sa[1].scale = 5.0, 5.0
+        s.calibrate(
+            x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length, interactive=False
+        )
+        assert sa[0].scale == sa[1].scale == 20.0
         x0, y0, x1, y1 = 10, 10, 10, 20
-        s.calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length,
-                    interactive=False)
-        assert sa[0].scale == sa[1].scale == 4.
+        s.calibrate(
+            x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length, interactive=False
+        )
+        assert sa[0].scale == sa[1].scale == 4.0
 
 
 def test_add_ramp():

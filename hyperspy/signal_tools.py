@@ -66,8 +66,9 @@ class LineInSignal2D(t.HasTraits):
         The color of the line. It automatically redraws the line.
 
     """
-    x0, y0, x1, y1 = t.Float(0.), t.Float(0.), t.Float(1.), t.Float(1.)
-    length = t.Float(1.)
+
+    x0, y0, x1, y1 = t.Float(0.0), t.Float(0.0), t.Float(1.0), t.Float(1.0)
+    length = t.Float(1.0)
     is_ok = t.Bool(False)
     on = t.Bool(False)
     # The following is disabled because as of traits 4.6 the Color trait
@@ -80,8 +81,7 @@ class LineInSignal2D(t.HasTraits):
 
     def __init__(self, signal):
         if signal.axes_manager.signal_dimension != 2:
-            raise SignalDimensionError(
-                signal.axes_manager.signal_dimension, 2)
+            raise SignalDimensionError(signal.axes_manager.signal_dimension, 2)
 
         self.signal = signal
         if (self.signal._plot is None) or (not self.signal._plot.is_active):
@@ -92,18 +92,19 @@ class LineInSignal2D(t.HasTraits):
         am._axes[0].navigate = True
         am._axes[1].navigate = True
         self.axes_manager = am
-        self.on_trait_change(self.switch_on_off, 'on')
+        self.on_trait_change(self.switch_on_off, "on")
 
     def draw(self):
         self.signal._plot.signal_plot.figure.canvas.draw_idle()
 
     def _get_initial_position(self):
         am = self.axes_manager
-        d0 = (am[0].high_value - am[0].low_value)/10
-        d1 = (am[1].high_value - am[1].low_value)/10
+        d0 = (am[0].high_value - am[0].low_value) / 10
+        d1 = (am[1].high_value - am[1].low_value) / 10
         position = (
             (am[0].low_value + d0, am[1].low_value + d1),
-            (am[0].high_value - d0, am[1].high_value - d1))
+            (am[0].high_value - d0, am[1].high_value - d1),
+        )
         return position
 
     def switch_on_off(self, obj, trait_name, old, new):
@@ -136,24 +137,19 @@ class LineInSignal2D(t.HasTraits):
     def _color_changed(self, old, new):
         if self.on is False:
             return
-
-#        self._line.color = ((self.color.Red() / 255.,
-#                                    self.color.Green() / 255.,
-#                                    self.color.Blue() / 255.,))
         self.draw()
 
 
-@add_gui_method(toolkey="Signal2D.calibrate")
+@add_gui_method(toolkey="hyperspy.Signal2D.calibrate")
 class Signal2DCalibration(LineInSignal2D):
-    new_length = t.Float(t.Undefined, label='New length')
+    new_length = t.Float(t.Undefined, label="New length")
     scale = t.Float()
     units = t.Unicode()
 
     def __init__(self, signal):
         super(Signal2DCalibration, self).__init__(signal)
         if signal.axes_manager.signal_dimension != 2:
-            raise SignalDimensionError(
-                signal.axes_manager.signal_dimension, 2)
+            raise SignalDimensionError(signal.axes_manager.signal_dimension, 2)
         self.units = self.signal.axes_manager.signal_axes[0].units
         self.scale = self.signal.axes_manager.signal_axes[0].scale
         self.on = True
@@ -161,20 +157,32 @@ class Signal2DCalibration(LineInSignal2D):
     def _new_length_changed(self, old, new):
         # If the line position is invalid or the new length is not defined do
         # nothing
-        if np.isnan(self.x0) or np.isnan(self.y0) or np.isnan(self.x1)\
-           or np.isnan(self.y1) or self.new_length is t.Undefined:
+        if (
+            np.isnan(self.x0)
+            or np.isnan(self.y0)
+            or np.isnan(self.x1)
+            or np.isnan(self.y1)
+            or self.new_length is t.Undefined
+        ):
             return
         self.scale = self.signal._get_signal2d_scale(
-                self.x0, self.y0, self.x1, self.y1, self.new_length)
+            self.x0, self.y0, self.x1, self.y1, self.new_length
+        )
 
     def _length_changed(self, old, new):
         # If the line position is invalid or the new length is not defined do
         # nothing
-        if np.isnan(self.x0) or np.isnan(self.y0) or np.isnan(self.x1)\
-           or np.isnan(self.y1) or self.new_length is t.Undefined:
+        if (
+            np.isnan(self.x0)
+            or np.isnan(self.y0)
+            or np.isnan(self.x1)
+            or np.isnan(self.y1)
+            or self.new_length is t.Undefined
+        ):
             return
         self.scale = self.signal._get_signal2d_scale(
-                self.x0, self.y0, self.x1, self.y1, self.new_length)
+            self.x0, self.y0, self.x1, self.y1, self.new_length
+        )
 
     def apply(self):
         if self.new_length is t.Undefined:
@@ -185,8 +193,8 @@ class Signal2DCalibration(LineInSignal2D):
             _logger.warn("Line position is not valid")
             return
         self.signal._calibrate(
-                x0=x0, y0=y0, x1=x1, y1=y1, new_length=self.new_length,
-                units=self.units)
+            x0=x0, y0=y0, x1=x1, y1=y1, new_length=self.new_length, units=self.units
+        )
         self.signal._replot()
 
 

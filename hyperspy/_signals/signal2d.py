@@ -750,9 +750,17 @@ class Signal2D(BaseSignal, CommonSignal2D):
     align2D.__doc__ %= (SHOW_PROGRESSBAR_ARG, PARALLEL_ARG, MAX_WORKERS_ARG)
 
     def calibrate(
-            self, x0=None, y0=None, x1=None, y1=None, new_length=None,
-            units=None, interactive=True, display=True,
-            toolkit=None):
+        self,
+        x0=None,
+        y0=None,
+        x1=None,
+        y1=None,
+        new_length=None,
+        units=None,
+        interactive=True,
+        display=True,
+        toolkit=None,
+    ):
         """Calibrate the x and y signal dimensions.
 
         Can be used either interactively, or by passing values as parameters.
@@ -783,7 +791,7 @@ class Signal2D(BaseSignal, CommonSignal2D):
 
         >>> s = hs.signals.Signal2D(np.random.random((100, 100)))
         >>> s.calibrate(x0=10, y0=10, x1=60, y1=10, new_length=100,
-        ...     interactive=False, units='nm')
+        ...     interactive=False, units="nm")
 
         """
         self._check_signal_dimension_equals_two()
@@ -793,14 +801,12 @@ class Signal2D(BaseSignal, CommonSignal2D):
         else:
             if None in (x0, y0, x1, y1, new_length):
                 raise ValueError(
-                        "With interactive=False x0, y0, x1, y1 and new_length "
-                        "must be set.")
+                    "With interactive=False x0, y0, x1, y1 and new_length "
+                    "must be set."
+                )
+            self._calibrate(x0, y0, x1, y1, new_length, units=units)
 
-            self._calibrate(
-                    x0, y0, x1, y1, new_length, units=units)
-
-    def _calibrate(
-            self, x0, y0, x1, y1, new_length, units=None):
+    def _calibrate(self, x0, y0, x1, y1, new_length, units=None):
         scale = self._get_signal2d_scale(x0, y0, x1, y1, new_length)
         sa = self.axes_manager.signal_axes
         sa[0].scale = scale
@@ -810,41 +816,26 @@ class Signal2D(BaseSignal, CommonSignal2D):
             sa[1].units = units
 
     def _get_signal2d_scale(self, x0, y0, x1, y1, length):
-        dtypes = set([type(i) for i in [x0, y0, x1, y1]])
-        if len(dtypes) == 1:
-            dtype = dtypes.pop()
-            if dtype is int:
-                scaled_input = False
-            elif dtype is float:
-                scaled_input = True
-            else:
-                raise TypeError(
-                        "x0, y0, x1 and y1 has type {0}, which is not "
-                        "recognized".format(dtype))
-        else:
-            raise TypeError(
-                    "x0, y0, x1, y1 must all be the same type, either "
-                    "floats or integers.")
         sa = self.axes_manager.signal_axes
         units = set([a.units for a in sa])
         if len(units) != 1:
             _logger.warning(
-                    "The signal axes does not have the same units, "
-                    "this might lead to strange values after this calibration")
-        if scaled_input:
-            scales = set([a.scale for a in sa])
-            if len(scales) != 1:
-                _logger.warning(
-                        "The previous scaling is not the same for both axes, "
-                        "this might lead to strange values after this "
-                        "calibration")
-            x0 = sa[0].value2index(x0)
-            y0 = sa[1].value2index(y0)
-            x1 = sa[0].value2index(x1)
-            y1 = sa[1].value2index(y1)
+                "The signal axes does not have the same units, this might lead to "
+                "strange values after this calibration"
+            )
+        scales = set([a.scale for a in sa])
+        if len(scales) != 1:
+            _logger.warning(
+                "The previous scaling is not the same for both axes, this might lead to "
+                "strange values after this calibration"
+            )
+        x0 = sa[0]._get_index(x0)
+        y0 = sa[1]._get_index(y0)
+        x1 = sa[0]._get_index(x1)
+        y1 = sa[1]._get_index(y1)
         pos = ((x0, y0), (x1, y1))
         old_length = np.linalg.norm(np.diff(pos, axis=0), axis=1)[0]
-        scale = length/old_length
+        scale = length / old_length
         return scale
 
     def crop_image(self, top=None, bottom=None,
