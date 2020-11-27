@@ -54,12 +54,8 @@ class LineInSignal2D(t.HasTraits):
     -----------
     x0, y0, x1, y1 : floats
         Position of the line in scaled units.
-    ix0, iy0, ix1, iy1 : ints
-        Position of the line in pixel (or index) values.
     length : float
         Length of the line in scaled units.
-    ilength : float
-        Length of the line in pixel (or index) values.
     on : bool
         Turns on and off the line
     color : wx.Colour
