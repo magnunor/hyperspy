@@ -178,9 +178,14 @@ class TestAlignTools:
         assert np.all(d_al == self.aligned)
 
 
+@lazifyTestClass
 class TestGetSignal2DScale:
+    def setup_method(self, method):
+        self.s0 = hs.signals.Signal2D(np.ones((100, 50)))
+        self.s1 = hs.signals.Signal2D(np.ones((100, 200)))
+
     def test_default_scale(self):
-        s = hs.signals.Signal2D(np.ones((100, 50)))
+        s = self.s0
         x0, y0, x1, y1, length = 10.0, 10.0, 30.0, 10.0, 80.0
         scale0 = s._get_signal2d_scale(x0=x0, y0=y0, x1=x1, y1=y1, length=length)
         x0, y0, x1, y1 = 10, 10, 30, 10
@@ -189,7 +194,7 @@ class TestGetSignal2DScale:
         assert scale0 == scale1 == 4.0
 
     def test_non_one_scale(self):
-        s = hs.signals.Signal2D(np.ones((100, 50)))
+        s = self.s0
         sa = s.axes_manager.signal_axes
         x0, y0, x1, y1, length = 4.0, 2.0, 4.0, 6.0, 16.0
         sa[0].scale, sa[1].scale = 0.1, 0.1
@@ -201,7 +206,7 @@ class TestGetSignal2DScale:
 
     def test_diagonal(self):
         length = (100 ** 2 + 50 ** 2) ** 0.5
-        s = hs.signals.Signal2D(np.ones((100, 200)))
+        s = self.s1
         sa = s.axes_manager.signal_axes
         sa[0].scale, sa[1].scale = 0.5, 1.0
         scale0 = s._get_signal2d_scale(
@@ -212,14 +217,19 @@ class TestGetSignal2DScale:
         assert scale1 == 1.0
 
     def test_string_input(self):
-        s = hs.signals.Signal2D(np.ones((100, 50)))
+        s = self.s0
         with pytest.raises(TypeError):
             s._get_signal2d_scale(x0="2.", y0="1", x1="3", y1="5", length=2)
 
 
+@lazifyTestClass
 class TestCalibrate2D:
+    def setup_method(self, method):
+        self.s0 = hs.signals.Signal2D(np.ones((100, 100)))
+        self.s1 = hs.signals.Signal2D(np.ones((100, 200)))
+
     def test_cli_default_scale(self):
-        s = hs.signals.Signal2D(np.ones((100, 100)))
+        s = self.s0
         x0, y0, x1, y1, new_length = 10.0, 10.0, 30.0, 10.0, 5.0
         units = "test"
         s._calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length, units=units)
@@ -228,7 +238,7 @@ class TestCalibrate2D:
         assert sa[0].scale == sa[1].scale == 0.25
 
     def test_cli_non_one_scale(self):
-        s = hs.signals.Signal2D(np.ones((100, 100)))
+        s = self.s0
         sa = s.axes_manager.signal_axes
         sa[0].scale, sa[1].scale = 0.25, 0.25
         x0, y0, x1, y1, new_length = 10.0, 10.0, 10.0, 20.0, 40.0
@@ -239,7 +249,7 @@ class TestCalibrate2D:
         assert sa[0].scale == sa[1].scale == 4.0
 
     def test_non_interactive_default_scale(self):
-        s = hs.signals.Signal2D(np.ones((200, 200)))
+        s = self.s1
         x0, y0, x1, y1, new_length = 10.0, 10.0, 10.0, 20.0, 40.0
         units = "nm"
         s.calibrate(
@@ -262,7 +272,7 @@ class TestCalibrate2D:
         assert sa[0].units == sa[1].units == units
 
     def test_non_interactive_non_one_scale(self):
-        s = hs.signals.Signal2D(np.ones((200, 200)))
+        s = self.s1
         x0, y0, x1, y1, new_length = 10.0, 10.0, 10.0, 20.0, 40.0
         sa = s.axes_manager.signal_axes
         sa[0].scale, sa[1].scale = 5.0, 5.0
