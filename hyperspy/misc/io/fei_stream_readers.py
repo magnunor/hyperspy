@@ -1,36 +1,58 @@
+# -*- coding: utf-8 -*-
+# Copyright 2007-2020 The HyperSpy developers
+#
+# This file is part of  HyperSpy.
+#
+#  HyperSpy is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+#  HyperSpy is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with  HyperSpy.  If not, see <http://www.gnu.org/licenses/>.
+
 import numpy as np
 import dask.array as da
+import sparse
 
-from hyperspy.decorators import jit_ifnumba
-
-
-try:
-    import sparse
-    sparse_installed = True
-
-    class DenseSliceCOO(sparse.COO):
-        """Just like sparse.COO, but returning a dense array on indexing/slicing"""
-
-        def __getitem__(self, *args, **kwargs):
-            obj = super().__getitem__(*args, **kwargs)
-            try:
-                return obj.todense()
-            except AttributeError:
-                # Indexing, unlike slicing, returns directly the content
-                return obj
-except ImportError:
-    sparse_installed = False
+from numba import njit
 
 
-@jit_ifnumba()
+class DenseSliceCOO(sparse.COO):
+    """Just like sparse.COO, but returning a dense array on indexing/slicing"""
+
+    def __getitem__(self, *args, **kwargs):
+        obj = super().__getitem__(*args, **kwargs)
+        try:
+            return obj.todense()
+        except AttributeError:
+            # Indexing, unlike slicing, returns directly the content
+            return obj
+
+
+@njit(cache=True)
 def _stream_to_sparse_COO_array_sum_frames(
-        stream_data, last_frame, shape, channels, rebin_energy=1, first_frame=0):
+        stream_data,
+        last_frame,
+        shape,
+        channels,
+        rebin_energy=1,
+        first_frame=0
+    ):  # pragma: no cover
     navigation_index = 0
     frame_number = 0
     ysize, xsize = shape
     frame_size = xsize * ysize
-    data_list = []
-    coords_list = []
+    # workaround for empty stream, numba "doesn't support" empty list, see
+    # https://github.com/numba/numba/pull/2184
+    # add first element and remove it at the end
+    data_list = [0]
+    coords_list = [(0, 0, 0)]
     data = 0
     count_channel = None
     for value in stream_data:
@@ -94,20 +116,30 @@ def _stream_to_sparse_COO_array_sum_frames(
         data_list.append(data)
 
     final_shape = (ysize, xsize, channels // rebin_energy)
-    coords = np.array(coords_list).T
-    data = np.array(data_list)
+    # Remove first element, see comments above
+    coords = np.array(coords_list)[1:].T
+    data = np.array(data_list)[1:]
     return coords, data, final_shape
 
 
-@jit_ifnumba()
+@njit(cache=True)
 def _stream_to_sparse_COO_array(
-        stream_data, last_frame, shape, channels, rebin_energy=1, first_frame=0):
+        stream_data,
+        last_frame,
+        shape,
+        channels,
+        rebin_energy=1,
+        first_frame=0
+    ):  # pragma: no cover
     navigation_index = 0
     frame_number = 0
     ysize, xsize = shape
     frame_size = xsize * ysize
-    data_list = []
-    coords = []
+    # workaround for empty stream, numba "doesn't support" empty list, see
+    # https://github.com/numba/numba/pull/2184
+    # add first element and remove it at the end
+    data_list = [0]
+    coords = [(0, 0, 0, 0)]
     data = 0
     count_channel = None
     for value in stream_data:
@@ -175,8 +207,9 @@ def _stream_to_sparse_COO_array(
 
     final_shape = (last_frame - first_frame, ysize, xsize,
                    channels // rebin_energy)
-    coords = np.array(coords).T
-    data = np.array(data_list)
+    # Remove first element, see comments above
+    coords = np.array(coords)[1:].T
+    data = np.array(data_list)[1:]
     return coords, data, final_shape
 
 
@@ -198,11 +231,6 @@ def stream_to_sparse_COO_array(
         If True, sum all the frames
 
     """
-    if not sparse_installed:
-        raise ImportError(
-            "The python-sparse package is not installed and it is required "
-            "for lazy loading of SIs stored in FEI EMD stream format."
-        )
     if sum_frames:
         coords, data, shape = _stream_to_sparse_COO_array_sum_frames(
             stream_data=stream_data,
@@ -226,9 +254,14 @@ def stream_to_sparse_COO_array(
     return dask_sparse
 
 
-@jit_ifnumba()
-def _fill_array_with_stream_sum_frames(spectrum_image, stream,
-                                       first_frame, last_frame, rebin_energy=1):
+@njit(cache=True)
+def _fill_array_with_stream_sum_frames(
+        spectrum_image,
+        stream,
+        first_frame,
+        last_frame,
+        rebin_energy=1
+    ):  # pragma: no cover
     # jit speeds up this function by a factor of ~ 30
     navigation_index = 0
     frame_number = 0
@@ -251,9 +284,14 @@ def _fill_array_with_stream_sum_frames(spectrum_image, stream,
             navigation_index += 1
 
 
-@jit_ifnumba()
-def _fill_array_with_stream(spectrum_image, stream, first_frame,
-                            last_frame, rebin_energy=1):
+@njit(cache=True)
+def _fill_array_with_stream(
+        spectrum_image,
+        stream,
+        first_frame,
+        last_frame,
+        rebin_energy=1
+    ):  # pragma: no cover
     navigation_index = 0
     frame_number = 0
     shape = spectrum_image.shape
@@ -330,8 +368,8 @@ def stream_to_array(
     return spectrum_image
 
 
-@jit_ifnumba()
-def array_to_stream(array):
+@njit(cache=True)
+def array_to_stream(array):  # pragma: no cover
     """Convert an array to a FEI stream
 
     Parameters

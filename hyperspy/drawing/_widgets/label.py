@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2007-2016 The HyperSpy developers
+# Copyright 2007-2020 The HyperSpy developers
 #
 # This file is part of  HyperSpy.
 #
@@ -24,7 +24,7 @@ from hyperspy.drawing.widgets import Widget1DBase
 
 class LabelWidget(Widget1DBase):
 
-    """A draggable text widget. Adds the attributes 'string' and 'bbox'. 
+    """A draggable text widget. Adds the attributes 'string' and 'bbox'.
     These are all arguments for matplotlib's Text artist. The default
     y-coordinate of the label is set to 0.9.
     """
@@ -99,11 +99,11 @@ class LabelWidget(Widget1DBase):
             self.string,
             color=self.color,
             alpha=self.alpha,
-            picker=5,
             transform=trans,
             horizontalalignment='left',
             bbox=self.bbox,
-            animated=self.blit)]
+            animated=self.blit,
+            picker=True)]
 
     def _onmousemove(self, event):
         """on mouse motion draw the cursor if picked"""
