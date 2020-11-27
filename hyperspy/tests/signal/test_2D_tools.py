@@ -227,6 +227,8 @@ class TestCalibrate2D:
     def setup_method(self, method):
         self.s0 = hs.signals.Signal2D(np.ones((100, 100)))
         self.s1 = hs.signals.Signal2D(np.ones((100, 200)))
+        self.s2 = hs.signals.Signal2D(np.ones((3, 30, 40)))
+        self.s3 = hs.signals.Signal2D(np.ones((2, 3, 30, 440)))
 
     def test_cli_default_scale(self):
         s = self.s0
@@ -270,6 +272,24 @@ class TestCalibrate2D:
         )
         assert sa[0].scale == sa[1].scale == 4.0
         assert sa[0].units == sa[1].units == units
+
+    def test_3d_signal(self):
+        s = self.s2
+        x0, y0, x1, y1, new_length = 10.0, 10.0, 30.0, 10.0, 5.0
+        units = "test"
+        s._calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length, units=units)
+        sa = s.axes_manager.signal_axes
+        assert sa[0].units == sa[1].units == units
+        assert sa[0].scale == sa[1].scale == 0.25
+
+    def test_4d_signal(self):
+        s = self.s3
+        x0, y0, x1, y1, new_length = 10.0, 10.0, 30.0, 10.0, 5.0
+        units = "test"
+        s._calibrate(x0=x0, y0=y0, x1=x1, y1=y1, new_length=new_length, units=units)
+        sa = s.axes_manager.signal_axes
+        assert sa[0].units == sa[1].units == units
+        assert sa[0].scale == sa[1].scale == 0.25
 
     def test_non_interactive_non_one_scale(self):
         s = self.s1
