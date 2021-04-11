@@ -1207,12 +1207,13 @@ def process_function_blockwise(data,
     output_shape = chunk_nav_shape + tuple(output_signal_size)
     # Pre-allocating the output array
     output_array = np.empty(output_shape, dtype=dtype)
+    # Using deepcopy to avoid the function changing the original kwargs
     if len(args) == 0:
         # There aren't any BaseSignals for iterating
         for nav_index in np.ndindex(chunk_nav_shape):
             islice = np.s_[nav_index]
             output_array[islice] = function(data[islice],
-                                            **kwargs)
+                                            **copy.deepcopy(kwargs))
     else:
         # There are BaseSignals which iterate alongside the data
         for index in np.ndindex(chunk_nav_shape):
@@ -1220,8 +1221,8 @@ def process_function_blockwise(data,
 
             iter_dict = {key: a[islice].squeeze() for key, a in zip(arg_keys,args)}
             output_array[islice] = function(data[islice],
-                                            **iter_dict,
-                                            **kwargs)
+                                            **copy.deepcopy(iter_dict),
+                                            **copy.deepcopy(kwargs))
     try:
         output_array = output_array.squeeze(-1)
     except ValueError:
@@ -1253,7 +1254,10 @@ def guess_output_signal_size(test_signal,
         output_dtype = np.object
         output_signal_size = ()
     else:
-        output = function(test_signal, **kwargs)
+        # copy.deepcopy is used to avoid the function altering
+        # the original kwargs.
+        output = function(test_signal, **copy.deepcopy(kwargs))
+        output = np.asarray(output)
         output_dtype = output.dtype
         output_signal_size = output.shape
     return output_signal_size, output_dtype
