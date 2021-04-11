@@ -655,7 +655,7 @@ class Signal1D(BaseSignal, CommonSignal1D):
         if interpolate is True:
             shift_array = shift_array / ip
         shift_array = shift_array * axis.scale
-        if self._lazy:
+        if shift_signal._lazy:
             # We must compute right now because otherwise any changes to the
             # axes_manager of the signal later in the workflow may result in
             # a wrong shift_array
