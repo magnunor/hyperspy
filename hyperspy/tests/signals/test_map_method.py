@@ -108,10 +108,6 @@ class TestSignal2D:
         s = self.im
         angles = hs.signals.BaseSignal([0, 45])
         if s._lazy:
-            # inplace not compatible with ragged and lazy
-            with pytest.raises(ValueError):
-                s.map(rotate, angle=angles.T, reshape=True, inplace=True,
-                      ragged=True)
             s = s.map(rotate, angle=angles.T, reshape=True, inplace=False,
                   ragged=True)
         else:
@@ -141,8 +137,7 @@ class TestSignal2D:
         assert out.axes_manager.navigation_shape == s.axes_manager.navigation_shape
         if ragged:
             if s._lazy:
-                with pytest.raises(ValueError):
-                    s.map(lambda x: x, inplace=True, ragged=ragged)
+                s.map(lambda x: x, inplace=True, ragged=ragged)
             for i in range(s.axes_manager.navigation_size):
                 np.testing.assert_allclose(s.data[i], out.data[i])
         else:
@@ -311,6 +306,7 @@ def test_new_axes(parallel):
     s.axes_manager.signal_axes[0].name = 'b'
 
     def test_func(d, i):
+        i = int(i)
         _slice = () + (None,) * i + (slice(None),)
         return d[_slice]
     res = s.map(test_func, inplace=False,
@@ -358,6 +354,273 @@ class TestLazyMap:
         s_out = s._map_iterate(function=f, iterating_kwargs=iterating_kwargs,
                                inplace=False)
         np.testing.assert_array_equal(s_out.mean(axis=(2, 3)).data, iter_array)
+
+
+def a_function(image, add=4):
+    return image + add
+
+
+class TestLazyResultInplace:
+    def setup_method(self):
+        data = np.zeros((32, 40, 64, 64), dtype=np.uint16)
+        data[:, :, 32 - 10 : 32 + 10, 32 - 10 : 32 + 10] = 100
+        s = hs.signals.Signal2D(data)
+        dask_array = da.from_array(data, chunks=(32, 32, 32, 32))
+        s_lazy = hs.signals.Signal2D(dask_array).as_lazy()
+        self.s_signal_image = data[0, 0].copy()
+        self.s = s
+        self.s_lazy = s_lazy
+
+    def test_lazy_input_not_lazy_result_not_inplace(self):
+        s = self.s_lazy
+        add = 1
+        s_out = s.map(a_function, add=add, inplace=False, lazy_result=False)
+        assert not s_out._lazy
+        s.compute()
+        for ix, iy in np.ndindex(s_out.axes_manager.navigation_shape):
+            np.testing.assert_allclose(s_out.data[iy, ix], self.s_signal_image + add)
+            np.testing.assert_allclose(s.data[iy, ix], self.s_signal_image)
+
+    def test_not_lazy_input_not_lazy_result_not_inplace(self):
+        s = self.s
+        add = 1
+        s_out = s.map(a_function, add=add, inplace=False, lazy_result=False)
+        assert not s_out._lazy
+        for ix, iy in np.ndindex(s_out.axes_manager.navigation_shape):
+            np.testing.assert_allclose(s_out.data[iy, ix], self.s_signal_image + add)
+            np.testing.assert_allclose(s.data[iy, ix], self.s_signal_image)
+
+    def test_lazy_input_lazy_result_not_inplace(self):
+        s = self.s_lazy
+        add = 1
+        s_out = s.map(a_function, add=add, inplace=False, lazy_result=True)
+        assert s_out._lazy
+        s_out.compute()
+        s.compute()
+        for ix, iy in np.ndindex(s_out.axes_manager.navigation_shape):
+            np.testing.assert_allclose(s_out.data[iy, ix], self.s_signal_image + add)
+            np.testing.assert_allclose(s.data[iy, ix], self.s_signal_image)
+
+    def test_not_lazy_input_lazy_result_not_inplace(self):
+        s = self.s
+        add = 1
+        s_out = s.map(a_function, add=add, inplace=False, lazy_result=True)
+        assert s_out._lazy
+        s_out.compute()
+        for ix, iy in np.ndindex(s_out.axes_manager.navigation_shape):
+            np.testing.assert_allclose(s_out.data[iy, ix], self.s_signal_image + add)
+            np.testing.assert_allclose(s.data[iy, ix], self.s_signal_image)
+
+    def test_lazy_input_not_lazy_result_inplace(self):
+        s = self.s_lazy
+        add = 1
+        s.map(a_function, add=add, inplace=True, lazy_result=False)
+        assert not s._lazy
+        for ix, iy in np.ndindex(s.axes_manager.navigation_shape):
+            np.testing.assert_allclose(s.data[iy, ix], self.s_signal_image + add)
+
+    def test_not_lazy_input_not_lazy_result_inplace(self):
+        s = self.s
+        add = 1
+        s.map(a_function, add=add, inplace=True, lazy_result=False)
+        assert not s._lazy
+        for ix, iy in np.ndindex(s.axes_manager.navigation_shape):
+            np.testing.assert_allclose(s.data[iy, ix], self.s_signal_image + add)
+
+    def test_lazy_input_lazy_result_inplace(self):
+        s = self.s_lazy
+        add = 1
+        s.map(a_function, add=add, inplace=True, lazy_result=True)
+        assert s._lazy
+        s.compute()
+        for ix, iy in np.ndindex(s.axes_manager.navigation_shape):
+            np.testing.assert_allclose(s.data[iy, ix], self.s_signal_image + add)
+
+    def test_not_lazy_input_lazy_result_inplace(self):
+        s = self.s
+        add = 1
+        s.map(a_function, add=add, inplace=True, lazy_result=True)
+        assert s._lazy
+        s.compute()
+        for ix, iy in np.ndindex(s.axes_manager.navigation_shape):
+            np.testing.assert_allclose(s.data[iy, ix], self.s_signal_image + add)
+
+
+class TestOutputDtype:
+    @pytest.mark.parametrize('dtype', [np.uint16, np.uint32, np.uint64, np.int32, np.float32])
+    def test_output_dtype_specified_not_inplace(self, dtype):
+        def a_function_dtype(data):
+            return data.astype("float32")
+        s = hs.signals.Signal1D(np.zeros((10, 100)), dtype=np.int16)
+        s_out = s.map(a_function_dtype, inplace=False, output_dtype=dtype, lazy_result=True)
+        assert s_out.data.dtype == dtype
+        s_out.compute()
+        assert s_out.data.dtype == dtype
+
+    @pytest.mark.parametrize('dtype', [np.uint16, np.uint32, np.uint64, np.int32, np.float32])
+    def test_output_dtype_specified_inplace(self, dtype):
+        def a_function_dtype(data):
+            return data.astype("float32")
+        s = hs.signals.Signal1D(np.zeros((10, 100)), dtype=np.int16)
+        s.map(a_function_dtype, inplace=True, output_dtype=dtype, lazy_result=True)
+        assert s.data.dtype == dtype
+        s.compute()
+        assert s.data.dtype == dtype
+
+    @pytest.mark.parametrize('dtype', [np.uint16, np.uint32, np.uint64, np.int32, np.float32])
+    def test_output_dtype_auto(self, dtype):
+        def a_function_dtype(data, dtype_to_function):
+            return data.astype(dtype_to_function)
+        s = hs.signals.Signal1D(np.zeros((10, 100)), dtype=np.int16)
+        s_out = s.map(a_function_dtype, inplace=False, dtype_to_function=dtype, lazy_result=True)
+        assert s_out.data.dtype == dtype
+        s_out.compute()
+        assert s_out.data.dtype == dtype
+
+
+class TestOutputDtype:
+    @pytest.mark.parametrize('output_signal_size', [(10,), (10, 20), (10, 20, 30)])
+    def test_output_signal_size(self, output_signal_size):
+        def a_function_signal_size(data, output_signal_size_for_function):
+            return np.zeros(output_signal_size_for_function)
+        s = hs.signals.Signal1D(np.zeros((10, 100)), dtype=np.int16)
+        s_out = s.map(
+            a_function_signal_size,
+            inplace=False,
+            output_signal_size=output_signal_size,
+            lazy_result=True,
+            output_signal_size_for_function=output_signal_size,
+        )
+        assert s_out.data[0].shape == output_signal_size
+        s_out.compute()
+        assert s_out.data[0].shape == output_signal_size
+
+    def test_output_signal_size_wrong_size(self):
+        def a_function(data):
+            return np.zeros(10)
+        s = hs.signals.Signal1D(np.zeros((10, 100)), dtype=np.int16)
+        s_out = s.map(
+            a_function,
+            inplace=False,
+            output_signal_size=(11, ),
+            lazy_result=True
+        )
+        with pytest.raises(ValueError):
+            s_out.compute()
+
+
+class TestOutputSignalSizeScalarWithNavigationDimensions:
+    @pytest.mark.parametrize('nav_shape', ((9, ), (8, 7), (6, 5, 4)))
+    def test_not_lazy_result(self, nav_shape):
+        def a_function(image):
+            return 10
+        data_shape = nav_shape + (20, 30)
+        data = np.zeros(data_shape)
+        s = hs.signals.Signal2D(data)
+        s_out = s.map(a_function, inplace=False, lazy_result=False)
+        assert s_out.data.shape == nav_shape
+        assert s_out.axes_manager.navigation_shape == nav_shape[::-1]
+        assert (s_out.data == np.ones(nav_shape, dtype=np.float) * 10).all()
+        assert s.data.shape == data_shape
+        assert s.axes_manager.shape == nav_shape[::-1] + (30, 20)
+
+        s.map(a_function, inplace=True, lazy_result=False)
+        assert s.data.shape == nav_shape
+        assert s.axes_manager.navigation_shape == nav_shape[::-1]
+
+    @pytest.mark.parametrize('nav_shape', ((9, ), (8, 7), (6, 5, 4)))
+    def test_lazy_result(self, nav_shape):
+        def a_function(image):
+            return 10
+        data_shape = nav_shape + (20, 30)
+        data = np.zeros(data_shape)
+        s = hs.signals.Signal2D(data)
+        s_out = s.map(a_function, inplace=False, lazy_result=True)
+        assert s_out.data.shape == nav_shape
+        assert s_out.axes_manager.navigation_shape == nav_shape[::-1]
+        assert s.data.shape == data_shape
+        assert s.axes_manager.shape == nav_shape[::-1] + (30, 20)
+
+        s.map(a_function, inplace=True, lazy_result=True)
+        assert s.data.shape == nav_shape
+        assert s.axes_manager.navigation_shape == nav_shape[::-1]
+
+
+class TestFunctionChangingIteratingKwargs:
+    def test_not_inplace_not_lazy_result(self):
+        def a_function(image, value):
+            value[:] = 8
+            return image + value[0] / value[1]
+        s = hs.signals.Signal2D(np.zeros((2, 3, 10, 10)))
+        data_iter = np.ones((2, 3, 2), dtype=np.uint16)
+
+        s_iter = hs.signals.Signal1D(data_iter.copy())
+        s_out = s.map(a_function, value=s_iter, inplace=False, lazy_result=False)
+        assert (s_iter.data.dtype == data_iter.dtype)
+        assert (s_iter.data == data_iter).all()
+        assert (s_out.data == 1.).all()
+
+    def test_inplace_not_lazy_result(self):
+        def a_function(image, value):
+            value[:] = 8
+            return image + value[0] / value[1]
+        s = hs.signals.Signal2D(np.zeros((2, 3, 10, 10)))
+        data_iter = np.ones((2, 3, 2), dtype=np.uint16)
+
+        s_iter = hs.signals.Signal1D(data_iter.copy())
+        s.map(a_function, value=s_iter, inplace=True, lazy_result=False)
+        assert (s_iter.data.dtype == data_iter.dtype)
+        assert (s_iter.data == data_iter).all()
+        assert (s.data == 1.).all()
+
+    def test_inplace_lazy_result(self):
+        def a_function(image, value):
+            value[:] = 8
+            return image + value[0] / value[1]
+        s = hs.signals.Signal2D(np.zeros((2, 3, 10, 10)))
+        data_iter = np.ones((2, 3, 2), dtype=np.uint16)
+
+        s_iter = hs.signals.Signal1D(data_iter.copy())
+        s.map(a_function, value=s_iter, inplace=True, lazy_result=True)
+        s.compute()
+        assert (s_iter.data.dtype == data_iter.dtype)
+        assert (s_iter.data == data_iter).all()
+        assert (s.data == 1.).all()
+
+    def test_not_inplace_lazy_result(self):
+        def a_function(image, value):
+            value[:] = 8
+            return image + value[0] / value[1]
+        s = hs.signals.Signal2D(np.zeros((2, 3, 10, 10)))
+        data_iter = np.ones((2, 3, 2), dtype=np.uint16)
+
+        s_iter = hs.signals.Signal1D(data_iter.copy())
+        s_out = s.map(a_function, value=s_iter, inplace=False, lazy_result=True)
+        s_out.compute()
+        assert (s_iter.data.dtype == data_iter.dtype)
+        assert (s_iter.data == data_iter).all()
+        assert (s_out.data == 1.).all()
+
+
+def test_dask_array_store():
+    def a_function(image):
+        image = image * 101
+        return image
+    s = hs.signals.Signal2D(np.ones((10, 12, 20, 24)), dtype=np.int16)
+    s.map(a_function, inplace=True, lazy_result=False)
+    assert (s.data == 101).all()
+
+
+class TestFunctionChangingArgs:
+    def test_not_inplace_not_lazy_result(self):
+        def a_function(image, animage):
+            animage *= 1.5
+            return image + animage
+        s = hs.signals.Signal2D(np.zeros((2, 3, 10, 10)))
+        animage_orig = np.arange(0, 100, dtype=np.float32).reshape(10, 10)
+        animage = animage_orig.copy()
+        s_out = s.map(a_function, inplace=False, animage=animage, lazy_result=False)
+        assert (animage == animage_orig).all()
 
 
 @pytest.mark.parametrize('ragged', [True, False, None])
