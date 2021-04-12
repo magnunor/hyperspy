@@ -4594,7 +4594,7 @@ class BaseSignal(FancySlicing,
         chunk_span = [chunk_span[i] for i in s_input.axes_manager.signal_indices_in_array]
         if not all(chunk_span):
             _logger.info("The chunk size needs to span the full signal size, rechunking...")
-            old_sig = s_input.rechunk(inplace=False)
+            old_sig = s_input.rechunk(inplace=False, nav_chunks=None)
         else:
             old_sig = s_input
         os_am = old_sig.axes_manager
@@ -4613,10 +4613,10 @@ class BaseSignal(FancySlicing,
                     VisibleDeprecationWarning)
             if iterating_kwargs[key]._lazy:
                 if iterating_kwargs[key]._get_navigation_chunk_size() != nav_chunks:
-                    iterating_kwargs[key].rechunk(nav_chunks=nav_chunks)
+                    iterating_kwargs[key].rechunk(nav_chunks=nav_chunks, sig_chunks=-1)
             else:
                 iterating_kwargs[key] = iterating_kwargs[key].as_lazy()
-                iterating_kwargs[key].rechunk(nav_chunks=nav_chunks)
+                iterating_kwargs[key].rechunk(nav_chunks=nav_chunks, sig_chunks=-1)
             extra_dims = (len(os_am.signal_shape) -
                           len(iterating_kwargs[key].axes_manager.signal_shape))
             if extra_dims > 0:

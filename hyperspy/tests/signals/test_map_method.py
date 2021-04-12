@@ -355,6 +355,17 @@ class TestLazyMap:
                                inplace=False)
         np.testing.assert_array_equal(s_out.mean(axis=(2, 3)).data, iter_array)
 
+    def test_keep_navigation_chunks(self):
+        s = self.s
+        s_out = s.map(lambda x: x, inplace=False, lazy_result=True)
+        assert s._get_navigation_chunk_size() == s_out._get_navigation_chunk_size()
+
+    def test_keep_navigation_chunks_cropping(self):
+        s = self.s
+        s1 = s.inav[1:-2, 2:-1]
+        s_out = s1.map(lambda x: x, inplace=False, lazy_result=True)
+        assert s1._get_navigation_chunk_size() == s_out._get_navigation_chunk_size()
+
 
 def a_function(image, add=4):
     return image + add
