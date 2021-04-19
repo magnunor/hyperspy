@@ -622,6 +622,26 @@ def test_dask_array_store():
     assert (s.data == 101).all()
 
 
+class TestOutputShape:
+    @pytest.mark.parametrize('shape', [(2, 2, 10, 10), (3, 30, 50, 20), (40, 50, 100, 120)])
+    def test_2d_input_1d_output(self, shape):
+        dask_array = da.zeros(shape, chunks=(10, 10, 20, 20))
+        s = hs.signals.Signal2D(dask_array).as_lazy()
+        def a_function(image):
+            return np.zeros((2, ))
+        s_out = s.map(a_function, inplace=False, lazy_result=True)
+        assert s.data.shape[:-2] + (2, ) == s_out.data.shape
+
+    @pytest.mark.parametrize('shape', [(2, 2, 10, 10), (3, 30, 50, 20), (40, 50, 100, 120)])
+    def test_2d_input_2d_output(self, shape):
+        dask_array = da.zeros(shape, chunks=(10, 10, 20, 20))
+        s = hs.signals.Signal2D(dask_array).as_lazy()
+        def a_function(image):
+            return np.zeros((2, 3))
+        s_out = s.map(a_function, inplace=False, lazy_result=True)
+        assert s.data.shape[:-2] + (2, 3) == s_out.data.shape
+
+
 class TestFunctionChangingArgs:
     def test_not_inplace_not_lazy_result(self):
         def a_function(image, animage):
