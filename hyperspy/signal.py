@@ -4689,19 +4689,21 @@ class BaseSignal(FancySlicing,
         return sig
 
     def _get_drop_axis_new_axis(self, output_signal_size):
+        am = self.axes_manager
         if output_signal_size == self.axes_manager.signal_shape:
             drop_axis = None
             new_axis = None
             axes_changed = False
         else:
             axes_changed = True
-            if len(output_signal_size) != len(self.axes_manager.signal_shape):
-                drop_axis = self.axes_manager.signal_indices_in_array
-                new_axis = tuple(range(len(output_signal_size)))
+            if len(output_signal_size) != len(am.signal_shape):
+                drop_axis = am.signal_indices_in_array
+                nav_dim = am.navigation_dimension
+                new_axis = tuple(range(nav_dim, len(output_signal_size) + nav_dim))
             else:
                 drop_axis = [it for (o, i, it) in zip(output_signal_size,
-                                                      self.axes_manager.signal_shape,
-                                                      self.axes_manager.signal_indices_in_array)
+                                                      am.signal_shape,
+                                                      am.signal_indices_in_array)
                              if o != i]
                 new_axis = drop_axis
         return drop_axis, new_axis, axes_changed
