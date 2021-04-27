@@ -4705,6 +4705,7 @@ class BaseSignal(FancySlicing,
                                                       am.signal_shape,
                                                       am.signal_indices_in_array)
                              if o != i]
+                drop_axis = tuple(drop_axis)
                 new_axis = drop_axis
         return drop_axis, new_axis, axes_changed
 
