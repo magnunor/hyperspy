@@ -613,6 +613,40 @@ class TestFunctionChangingIteratingKwargs:
         assert (s_out.data == 1.).all()
 
 
+class TestGetDropAxisNewAxis:
+    @pytest.mark.parametrize(
+        "input_shape",
+        [(50, 40), (10, 50, 40), (100, 10, 40, 70), (150, 100, 20, 65, 13)],
+    )
+    def test_no_change_2d_signal(self, input_shape):
+        chunks = (10,) * len(input_shape)
+        dask_array = da.random.random(input_shape, chunks=chunks)
+        s = hs.signals.Signal2D(dask_array).as_lazy()
+        output_signal_size = input_shape[-2:][::-1]
+        drop_axis, new_axis, axes_changed = s._get_drop_axis_new_axis(
+            output_signal_size
+        )
+        assert drop_axis == None
+        assert new_axis == None
+        assert axes_changed == False
+
+    @pytest.mark.parametrize(
+        "input_shape",
+        [(20,), (50, 40), (10, 50, 40), (100, 10, 40, 70), (150, 100, 20, 65, 13)],
+    )
+    def test_no_change_1d_signal(self, input_shape):
+        chunks = (10,) * len(input_shape)
+        dask_array = da.random.random(input_shape, chunks=chunks)
+        s = hs.signals.Signal1D(dask_array).as_lazy()
+        output_signal_size = input_shape[-1:]
+        drop_axis, new_axis, axes_changed = s._get_drop_axis_new_axis(
+            output_signal_size
+        )
+        assert drop_axis == None
+        assert new_axis == None
+        assert axes_changed == False
+
+
 def test_dask_array_store():
     def a_function(image):
         image = image * 101
