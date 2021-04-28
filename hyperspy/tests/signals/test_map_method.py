@@ -646,6 +646,25 @@ class TestGetDropAxisNewAxis:
         assert new_axis == None
         assert axes_changed == False
 
+    def test_different_output_signal_size_signal2d(self):
+        s = hs.signals.Signal2D(np.zeros((4, 5)))
+        drop_axis, new_axis, axes_changed = s._get_drop_axis_new_axis((1,))
+        assert drop_axis == (1, 0)
+        assert new_axis == (0,)
+        assert axes_changed == True
+
+        s = hs.signals.Signal2D(np.zeros((7, 10, 5)))
+        drop_axis, new_axis, axes_changed = s._get_drop_axis_new_axis((2,))
+        assert drop_axis == (2, 1)
+        assert new_axis == (1,)
+        assert axes_changed == True
+
+        s = hs.signals.Signal2D(np.zeros((3, 2, 7, 10, 5)))
+        drop_axis, new_axis, axes_changed = s._get_drop_axis_new_axis((5,))
+        assert drop_axis == (4, 3)
+        assert new_axis == (3,)
+        assert axes_changed == True
+
 
 def test_dask_array_store():
     def a_function(image):
