@@ -4600,38 +4600,15 @@ class BaseSignal(FancySlicing,
         os_am = old_sig.axes_manager
         autodetermine = (output_signal_size is None or output_dtype is None) # try to guess output dtype and sig size?
         nav_chunks = old_sig._get_navigation_chunk_size()
-        args = ()
-        arg_keys = ()
 
-        for key in iterating_kwargs:
-            if not isinstance(iterating_kwargs[key], BaseSignal):
-                iterating_kwargs[key] = BaseSignal(iterating_kwargs[key].T).T
-                warnings.warn(
-                    "Passing arrays as keyword arguments can be ambigous. "
-                    "This is deprecated and will be removed in HyperSpy 2.0. "
-                    "Pass signal instances instead.",
-                    VisibleDeprecationWarning)
-            if iterating_kwargs[key]._lazy:
-                if iterating_kwargs[key]._get_navigation_chunk_size() != nav_chunks:
-                    iterating_kwargs[key].rechunk(nav_chunks=nav_chunks, sig_chunks=-1)
-            else:
-                iterating_kwargs[key] = iterating_kwargs[key].as_lazy()
-                iterating_kwargs[key].rechunk(nav_chunks=nav_chunks, sig_chunks=-1)
-            extra_dims = (len(os_am.signal_shape) -
-                          len(iterating_kwargs[key].axes_manager.signal_shape))
-            if extra_dims > 0:
-                old_shape = iterating_kwargs[key].data.shape
-                new_shape = old_shape + (1,)*extra_dims
-                args += (iterating_kwargs[key].data.reshape(new_shape), )
-            else:
-                args += (iterating_kwargs[key].data, )
-            arg_keys += (key,)
+        args, arg_keys = self._get_iterating_kwargs(
+            iterating_kwargs, nav_chunks, os_am.signal_shape) 
 
         if autodetermine: #trying to guess the output d-type and size from one signal
             testing_kwargs = {}
-            for key in iterating_kwargs:
+            for ikey, key in enumerate(arg_keys):
                 test_ind = (0,) * len(os_am.navigation_axes)
-                testing_kwargs[key] = np.squeeze(iterating_kwargs[key].inav[test_ind].data).compute()
+                testing_kwargs[key] = np.squeeze(args[ikey][test_ind]).compute()
             testing_kwargs = {**kwargs, **testing_kwargs}
             test_data = np.array(old_sig.inav[(0,) * len(os_am.navigation_shape)].data.compute())
             temp_output_signal_size, temp_output_dtype = guess_output_signal_size(
@@ -4708,6 +4685,33 @@ class BaseSignal(FancySlicing,
                 drop_axis = tuple(drop_axis)
                 new_axis = drop_axis
         return drop_axis, new_axis, axes_changed
+
+    def _get_iterating_kwargs(self, iterating_kwargs, nav_chunks, signal_dim_shape):
+        args, arg_keys = (), ()
+        for key in iterating_kwargs:
+            if not isinstance(iterating_kwargs[key], BaseSignal):
+                iterating_kwargs[key] = BaseSignal(iterating_kwargs[key].T).T
+                warnings.warn(
+                    "Passing arrays as keyword arguments can be ambiguous. "
+                    "This is deprecated and will be removed in HyperSpy 2.0. "
+                    "Pass signal instances instead.",
+                    VisibleDeprecationWarning)
+            if iterating_kwargs[key]._lazy:
+                if iterating_kwargs[key]._get_navigation_chunk_size() != nav_chunks:
+                    iterating_kwargs[key].rechunk(nav_chunks=nav_chunks, sig_chunks=-1)
+            else:
+                iterating_kwargs[key] = iterating_kwargs[key].as_lazy()
+                iterating_kwargs[key].rechunk(nav_chunks=nav_chunks, sig_chunks=-1)
+            extra_dims = (len(signal_dim_shape) -
+                          len(iterating_kwargs[key].axes_manager.signal_shape))
+            if extra_dims > 0:
+                old_shape = iterating_kwargs[key].data.shape
+                new_shape = old_shape + (1,)*extra_dims
+                args += (iterating_kwargs[key].data.reshape(new_shape), )
+            else:
+                args += (iterating_kwargs[key].data, )
+            arg_keys += (key,)
+        return args, arg_keys
 
     def copy(self):
         """
