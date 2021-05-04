@@ -842,4 +842,4 @@ def test_map_ufunc(caplog):
     # s.map(np.log)
     assert np.log(s) == s.map(np.log)
     np.testing.assert_allclose(s.data, np.log(data))
-    assert "can direcly operate on hyperspy signals" in caplog.records[0].message
+    assert "can directly operate on hyperspy signals" in caplog.records[0].message
