@@ -557,6 +557,82 @@ class TestOutputSignalSizeScalarWithNavigationDimensions:
         assert s.axes_manager.navigation_shape == nav_shape[::-1]
 
 
+class TestGetIteratingKwargsSignal2D:
+    def setup_method(self):
+        dask_array = da.zeros((10, 20, 100, 100), chunks=(5, 10, 50, 50))
+        s = hs.signals.Signal2D(dask_array).as_lazy()
+        self.s = s
+
+    def test_empty(self):
+        s = self.s
+        iterating_kwargs = {}
+        args, arg_keys = s._get_iterating_kwargs(iterating_kwargs)
+        assert len(arg_keys) == 0
+        assert len(args) == 0
+
+    def test_one_iterating_kwarg(self):
+        s = self.s
+        nav_chunks = s._get_navigation_chunk_size()
+        nav_dim = len(nav_chunks)
+        s_iter0 = hs.signals.Signal1D(np.random.random((10, 20, 2)))
+        iterating_kwargs = {"iter0": s_iter0}
+        args, arg_keys = s._get_iterating_kwargs(iterating_kwargs)
+        assert arg_keys == ("iter0",)
+        for arg in args:
+            iter_nav_chunks = arg.chunks[: len(nav_chunks)]
+            assert nav_chunks == iter_nav_chunks
+            assert np.all(np.squeeze(arg.chunks[nav_dim:]) == arg.shape[nav_dim:])
+            assert np.all(s_iter0.data == np.squeeze(arg.compute()))
+
+    def test_many_iterating_kwarg(self):
+        s = self.s
+        nav_chunks = s._get_navigation_chunk_size()
+        nav_dim = len(nav_chunks)
+        s_iter0 = hs.signals.Signal1D(np.random.random((10, 20, 2)))
+        s_iter1 = hs.signals.Signal2D(np.random.random((10, 20, 200, 200)))
+        s_iter2 = hs.signals.BaseSignal(np.random.random((10, 20, 100, 100, 4)))
+        s_iter2 = s_iter2.transpose(navigation_axes=(-2, -1))
+        s_iter_list = [s_iter0, s_iter1, s_iter2]
+        iterating_kwargs = {"iter0": s_iter0, "iter1": s_iter1, "iter2": s_iter2}
+        args, arg_keys = s._get_iterating_kwargs(iterating_kwargs)
+        assert arg_keys == ("iter0", "iter1", "iter2")
+        for iarg, arg in enumerate(args):
+            iter_nav_chunks = arg.chunks[:nav_dim]
+            assert nav_chunks == iter_nav_chunks
+            assert np.all(np.squeeze(arg.chunks[nav_dim:]) == arg.shape[nav_dim:])
+            assert np.all(s_iter_list[iarg].data == np.squeeze(arg.compute()))
+
+    def test_lazy_iterating_kwarg(self):
+        s = self.s
+        nav_chunks = s._get_navigation_chunk_size()
+        nav_dim = len(nav_chunks)
+        dask_array_iter0 = da.zeros((10, 20, 2), chunks=(5, 10, 2))
+        dask_array_iter1 = da.zeros((10, 20, 2), chunks=(5, 5, 2))
+        s_iter0 = hs.signals.Signal1D(dask_array_iter0).as_lazy()
+        s_iter1 = hs.signals.Signal1D(dask_array_iter1).as_lazy()
+        iterating_kwargs = {"iter0": s_iter0, "iter1": s_iter1}
+        args, arg_keys = s._get_iterating_kwargs(iterating_kwargs)
+        assert arg_keys == ("iter0", "iter1")
+        for arg in args:
+            iter_nav_chunks = arg.chunks[: len(nav_chunks)]
+            assert nav_chunks == iter_nav_chunks
+            assert np.all(np.squeeze(arg.chunks[nav_dim:]) == arg.shape[nav_dim:])
+
+    def test_cropping_iterating_kwarg(self):
+        s = self.s.inav[1:]
+        nav_chunks = s._get_navigation_chunk_size()
+        nav_dim = len(nav_chunks)
+        s_iter0 = hs.signals.Signal1D(np.random.random((10, 19, 2)))
+        iterating_kwargs = {"iter0": s_iter0}
+        args, arg_keys = s._get_iterating_kwargs(iterating_kwargs)
+        assert arg_keys == ("iter0",)
+        for arg in args:
+            iter_nav_chunks = arg.chunks[: len(nav_chunks)]
+            assert nav_chunks == iter_nav_chunks
+            assert np.all(np.squeeze(arg.chunks[nav_dim:]) == arg.shape[nav_dim:])
+            assert np.all(s_iter0.data == np.squeeze(arg.compute()))
+
+
 class TestFunctionChangingIteratingKwargs:
     def test_not_inplace_not_lazy_result(self):
         def a_function(image, value):
