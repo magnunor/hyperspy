@@ -4503,7 +4503,7 @@ class BaseSignal(FancySlicing,
         >>> im.map(scipy.ndimage.gaussian_filter, sigma=sigmas)
 
         """
-        # Sepate ndkwargs depending on if they are BaseSignals.
+        # Separate ndkwargs depending on if they are BaseSignals.
         ndkwargs = {}
         ndkeys = [key for key in kwargs if isinstance(kwargs[key], BaseSignal)]
         for key in ndkeys:
@@ -4526,8 +4526,9 @@ class BaseSignal(FancySlicing,
         if len(units) != 1 or len(scale) != 1:
             _logger.warning(
                 "The function you applied does not take into "
-                "account the difference of units and of scales in-between"
-                " axes.")
+                "account the difference of units and of scales in-between "
+                "axes."
+            )
         # If the function has an axis argument and the signal dimension is 1,
         # we suppose that it can operate on the full array and we don't
         # iterate over the coordinates.
@@ -4539,7 +4540,7 @@ class BaseSignal(FancySlicing,
                 fargs = inspect.signature(function).parameters.keys()
             else:
                 _logger.warning(f"The function `{function.__name__}` can "
-                                "direcly operate on hyperspy signals and it "
+                                "directly operate on hyperspy signals and it "
                                 "is not necessary to use `map`.")
         except TypeError as error:
             # This is probably a Cython function that is not supported by
@@ -4549,14 +4550,17 @@ class BaseSignal(FancySlicing,
         kwargs["output_signal_size"] = output_signal_size
         kwargs["output_dtype"] = output_dtype
         # Iteration over coordinates.
-        result = self._map_iterate(function, iterating_kwargs=ndkwargs,
-                                show_progressbar=show_progressbar,
-                                parallel=parallel,
-                                max_workers=max_workers,
-                                ragged=ragged,
-                                inplace=inplace,
-                                lazy_result=lazy_result,
-                                **kwargs)
+        result = self._map_iterate(
+            function,
+            iterating_kwargs=ndkwargs,
+            show_progressbar=show_progressbar,
+            parallel=parallel,
+            max_workers=max_workers,
+            ragged=ragged,
+            inplace=inplace,
+            lazy_result=lazy_result,
+            **kwargs
+        )
         if not inplace:
             return result
         else:
@@ -4599,10 +4603,8 @@ class BaseSignal(FancySlicing,
             old_sig = s_input
         os_am = old_sig.axes_manager
         autodetermine = (output_signal_size is None or output_dtype is None) # try to guess output dtype and sig size?
-        nav_chunks = old_sig._get_navigation_chunk_size()
 
-        args, arg_keys = self._get_iterating_kwargs(
-            iterating_kwargs, nav_chunks, os_am.signal_shape) 
+        args, arg_keys = old_sig._get_iterating_kwargs(iterating_kwargs) 
 
         if autodetermine: #trying to guess the output d-type and size from one signal
             testing_kwargs = {}
@@ -4621,22 +4623,24 @@ class BaseSignal(FancySlicing,
 
         drop_axis, new_axis, axes_changed = self._get_drop_axis_new_axis(output_signal_size)
         chunks = tuple([old_sig.data.chunks[i] for i in sorted(nav_indexes)]) + output_signal_size
-        mapped = da.map_blocks(process_function_blockwise,
-                               old_sig.data,
-                               *args,
-                               function=function,
-                               nav_indexes=nav_indexes,
-                               drop_axis=drop_axis,
-                               new_axis=new_axis,
-                               output_signal_size=output_signal_size,
-                               dtype=output_dtype,
-                               chunks=chunks,
-                               arg_keys=arg_keys,
-                               **kwargs)
+        mapped = da.map_blocks(
+            process_function_blockwise,
+            old_sig.data,
+            *args,
+            function=function,
+            nav_indexes=nav_indexes,
+            drop_axis=drop_axis,
+            new_axis=new_axis,
+            output_signal_size=output_signal_size,
+            dtype=output_dtype,
+            chunks=chunks,
+            arg_keys=arg_keys,
+            **kwargs
+        )
         data_stored = False
         if inplace:
             if not self._lazy and not lazy_result and (mapped.shape == self.data.shape) and (mapped.dtype == self.data.dtype):
-                # da.store is used to avoid unecessary amount of memory usage.
+                # da.store is used to avoid unnecessary amount of memory usage.
                 # By using it here, the contents in mapped is written directly to
                 # the existing NumPy array, avoiding a potential doubling of memory use.
                 da.store(mapped, self.data, dtype=mapped.dtype, compute=True)
@@ -4686,16 +4690,19 @@ class BaseSignal(FancySlicing,
                 new_axis = drop_axis
         return drop_axis, new_axis, axes_changed
 
-    def _get_iterating_kwargs(self, iterating_kwargs, nav_chunks, signal_dim_shape):
+    def _get_iterating_kwargs(self, iterating_kwargs):
+        signal_dim_shape = self.axes_manager.signal_shape
+        nav_chunks = self._get_navigation_chunk_size()
         args, arg_keys = (), ()
         for key in iterating_kwargs:
             if not isinstance(iterating_kwargs[key], BaseSignal):
                 iterating_kwargs[key] = BaseSignal(iterating_kwargs[key].T).T
-                warnings.warn(
+                _logger.warning(
                     "Passing arrays as keyword arguments can be ambiguous. "
                     "This is deprecated and will be removed in HyperSpy 2.0. "
                     "Pass signal instances instead.",
-                    VisibleDeprecationWarning)
+                    VisibleDeprecationWarning
+                )
             if iterating_kwargs[key]._lazy:
                 if iterating_kwargs[key]._get_navigation_chunk_size() != nav_chunks:
                     iterating_kwargs[key].rechunk(nav_chunks=nav_chunks, sig_chunks=-1)
