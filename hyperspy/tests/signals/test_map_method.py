@@ -843,3 +843,109 @@ def test_map_ufunc(caplog):
     assert np.log(s) == s.map(np.log)
     np.testing.assert_allclose(s.data, np.log(data))
     assert "can directly operate on hyperspy signals" in caplog.records[0].message
+
+
+def shift_intensity_function(image, shift, intensity, crop):
+    x, y = shift
+    crop_x0, crop_x1 = crop[0]
+    crop_y0, crop_y1 = crop[1]
+    image = image[crop_x0:crop_x1, crop_y0:crop_y1]
+    image_out = np.roll(image, (-x + crop_x0, -y + crop_y0), axis=(0, 1)) / intensity
+    return image_out
+
+
+class TestFullProcessing:
+    def setup_method(self):
+        data_array = np.zeros((30, 40, 50, 60), dtype=np.uint16)
+        shift_array = np.random.randint(20, 40, size=(30, 40, 2))
+        intensity_array = np.random.randint(1, 2000, size=(30, 40))
+        crop_array = np.zeros((30, 40, 2, 2), dtype=np.int16)
+        crop_array[:, :, 0] = 5, -5
+        crop_array[:, :, 1] = 8, -8
+        for ix, iy in np.ndindex(data_array.shape[:-2]):
+            shift_x, shift_y = shift_array[ix, iy]
+            data_array[ix, iy, shift_x, shift_y] = intensity_array[ix, iy]
+
+        self.s = hs.signals.Signal2D(data_array)
+        self.s_shift = hs.signals.Signal1D(shift_array)
+        s_intensity = hs.signals.BaseSignal(intensity_array)
+        self.s_intensity = s_intensity.transpose(navigation_axes=(0, 1))
+        s_crop = hs.signals.BaseSignal(crop_array)
+        self.s_crop = s_crop.transpose(navigation_axes=(-2, -1))
+
+    def test_signal2d_all_nonlazy(self):
+        s = self.s
+        s_crop, s_shift, s_intensity = self.s_crop, self.s_shift, self.s_intensity
+        s_out = s.map(
+            function=shift_intensity_function,
+            shift=s_shift,
+            intensity=s_intensity,
+            crop=s_crop,
+            inplace=False,
+        )
+        assert np.all(s_out.data[:, :, 0, 0] == 1.0)
+        s_out.data[:, :, 0, 0] = 0.0
+        assert not np.any(s_out.data)
+        assert s_out.axes_manager.shape == (40, 30, 44, 40)
+
+    def test_signal2d_lazy_signal_input(self):
+        s = self.s
+        s_crop, s_shift, s_intensity = self.s_crop, self.s_shift, self.s_intensity
+        s.data = da.from_array(s.data, chunks=(5, 10, 20, 20))
+        s = s.as_lazy()
+        s_out = s.map(
+            function=shift_intensity_function,
+            shift=s_shift,
+            intensity=s_intensity,
+            crop=s_crop,
+            inplace=False,
+        )
+        assert np.all(s_out.data[:, :, 0, 0] == 1.0)
+        s_out.data[:, :, 0, 0] = 0.0
+        assert not np.any(s_out.data)
+        assert s_out.axes_manager.shape == (40, 30, 44, 40)
+
+    def test_signal2d_lazy_all_input(self):
+        s = self.s
+        s_crop, s_shift, s_intensity = self.s_crop, self.s_shift, self.s_intensity
+        s.data = da.from_array(s.data, chunks=(5, 10, 20, 20))
+        s_crop.data = da.from_array(s_crop.data, chunks=(5, 10, 2, 2))
+        s_shift.data = da.from_array(s_shift.data, chunks=(5, 10, 2))
+        s, s_crop = s.as_lazy(), s_crop.as_lazy()
+        s_shift, s_intensity = s_shift.as_lazy(), s_intensity.as_lazy()
+        s_out = s.map(
+            function=shift_intensity_function,
+            shift=s_shift,
+            intensity=s_intensity,
+            crop=s_crop,
+            inplace=False,
+        )
+        assert np.all(s_out.data[:, :, 0, 0] == 1.0)
+        s_out.data[:, :, 0, 0] = 0.0
+        assert not np.any(s_out.data)
+        assert s_out.axes_manager.shape == (40, 30, 44, 40)
+
+    def test_crop_signal2d_lazy_all_input(self):
+        s = self.s
+        s_crop, s_shift, s_intensity = self.s_crop, self.s_shift, self.s_intensity
+        s.data = da.from_array(s.data, chunks=(5, 10, 20, 20))
+        s_crop.data = da.from_array(s_crop.data, chunks=(5, 10, 2, 2))
+        s_shift.data = da.from_array(s_shift.data, chunks=(5, 10, 2))
+        s_intensity.data = da.from_array(s_intensity.data, chunks=(5, 10))
+        s, s_crop = s.as_lazy(), s_crop.as_lazy()
+        s_shift, s_intensity = s_shift.as_lazy(), s_intensity.as_lazy()
+        s = s.inav[1:, 2:]
+        s_crop = s_crop.inav[1:, 2:]
+        s_shift = s_shift.inav[1:, 2:]
+        s_intensity = s_intensity.inav[1:, 2:]
+        s_out = s.map(
+            function=shift_intensity_function,
+            shift=s_shift,
+            intensity=s_intensity,
+            crop=s_crop,
+            inplace=False,
+        )
+        assert np.all(s_out.data[:, :, 0, 0] == 1.0)
+        s_out.data[:, :, 0, 0] = 0.0
+        assert not np.any(s_out.data)
+        assert s_out.axes_manager.shape == (39, 28, 44, 40)
