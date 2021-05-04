@@ -329,7 +329,7 @@ class TestLazyMap:
         dask_array = da.zeros((10, 11, 12, 13), chunks=(3, 3, 3, 3))
         self.s = hs.signals.Signal2D(dask_array).as_lazy()
 
-    @pytest.mark.parametrize('chunks', [(3, 2), (3, 3)])
+    @pytest.mark.parametrize("chunks", [(3, 2), (3, 3)])
     def test_map_iter(self,chunks):
         iter_array, _ = da.meshgrid(range(11), range(10))
         iter_array = iter_array.rechunk(chunks)
@@ -458,7 +458,7 @@ class TestLazyResultInplace:
 
 
 class TestOutputDtype:
-    @pytest.mark.parametrize('dtype', [np.uint16, np.uint32, np.uint64, np.int32, np.float32])
+    @pytest.mark.parametrize("dtype", [np.uint16, np.uint32, np.uint64, np.int32, np.float32])
     def test_output_dtype_specified_not_inplace(self, dtype):
         def a_function_dtype(data):
             return data.astype("float32")
@@ -468,7 +468,7 @@ class TestOutputDtype:
         s_out.compute()
         assert s_out.data.dtype == dtype
 
-    @pytest.mark.parametrize('dtype', [np.uint16, np.uint32, np.uint64, np.int32, np.float32])
+    @pytest.mark.parametrize("dtype", [np.uint16, np.uint32, np.uint64, np.int32, np.float32])
     def test_output_dtype_specified_inplace(self, dtype):
         def a_function_dtype(data):
             return data.astype("float32")
@@ -478,7 +478,7 @@ class TestOutputDtype:
         s.compute()
         assert s.data.dtype == dtype
 
-    @pytest.mark.parametrize('dtype', [np.uint16, np.uint32, np.uint64, np.int32, np.float32])
+    @pytest.mark.parametrize("dtype", [np.uint16, np.uint32, np.uint64, np.int32, np.float32])
     def test_output_dtype_auto(self, dtype):
         def a_function_dtype(data, dtype_to_function):
             return data.astype(dtype_to_function)
@@ -490,7 +490,7 @@ class TestOutputDtype:
 
 
 class TestOutputDtype:
-    @pytest.mark.parametrize('output_signal_size', [(10,), (10, 20), (10, 20, 30)])
+    @pytest.mark.parametrize("output_signal_size", [(10,), (10, 20), (10, 20, 30)])
     def test_output_signal_size(self, output_signal_size):
         def a_function_signal_size(data, output_signal_size_for_function):
             return np.zeros(output_signal_size_for_function)
@@ -521,7 +521,7 @@ class TestOutputDtype:
 
 
 class TestOutputSignalSizeScalarWithNavigationDimensions:
-    @pytest.mark.parametrize('nav_shape', ((9, ), (8, 7), (6, 5, 4)))
+    @pytest.mark.parametrize("nav_shape", ((9, ), (8, 7), (6, 5, 4)))
     def test_not_lazy_result(self, nav_shape):
         def a_function(image):
             return 10
@@ -539,7 +539,7 @@ class TestOutputSignalSizeScalarWithNavigationDimensions:
         assert s.data.shape == nav_shape
         assert s.axes_manager.navigation_shape == nav_shape[::-1]
 
-    @pytest.mark.parametrize('nav_shape', ((9, ), (8, 7), (6, 5, 4)))
+    @pytest.mark.parametrize("nav_shape", ((9, ), (8, 7), (6, 5, 4)))
     def test_lazy_result(self, nav_shape):
         def a_function(image):
             return 10
@@ -638,55 +638,59 @@ class TestFunctionChangingIteratingKwargs:
         def a_function(image, value):
             value[:] = 8
             return image + value[0] / value[1]
+
         s = hs.signals.Signal2D(np.zeros((2, 3, 10, 10)))
         data_iter = np.ones((2, 3, 2), dtype=np.uint16)
 
         s_iter = hs.signals.Signal1D(data_iter.copy())
         s_out = s.map(a_function, value=s_iter, inplace=False, lazy_result=False)
-        assert (s_iter.data.dtype == data_iter.dtype)
+        assert s_iter.data.dtype == data_iter.dtype
         assert (s_iter.data == data_iter).all()
-        assert (s_out.data == 1.).all()
+        assert (s_out.data == 1.0).all()
 
     def test_inplace_not_lazy_result(self):
         def a_function(image, value):
             value[:] = 8
             return image + value[0] / value[1]
+
         s = hs.signals.Signal2D(np.zeros((2, 3, 10, 10)))
         data_iter = np.ones((2, 3, 2), dtype=np.uint16)
 
         s_iter = hs.signals.Signal1D(data_iter.copy())
         s.map(a_function, value=s_iter, inplace=True, lazy_result=False)
-        assert (s_iter.data.dtype == data_iter.dtype)
+        assert s_iter.data.dtype == data_iter.dtype
         assert (s_iter.data == data_iter).all()
-        assert (s.data == 1.).all()
+        assert (s.data == 1.0).all()
 
     def test_inplace_lazy_result(self):
         def a_function(image, value):
             value[:] = 8
             return image + value[0] / value[1]
+
         s = hs.signals.Signal2D(np.zeros((2, 3, 10, 10)))
         data_iter = np.ones((2, 3, 2), dtype=np.uint16)
 
         s_iter = hs.signals.Signal1D(data_iter.copy())
         s.map(a_function, value=s_iter, inplace=True, lazy_result=True)
         s.compute()
-        assert (s_iter.data.dtype == data_iter.dtype)
+        assert s_iter.data.dtype == data_iter.dtype
         assert (s_iter.data == data_iter).all()
-        assert (s.data == 1.).all()
+        assert (s.data == 1.0).all()
 
     def test_not_inplace_lazy_result(self):
         def a_function(image, value):
             value[:] = 8
             return image + value[0] / value[1]
+
         s = hs.signals.Signal2D(np.zeros((2, 3, 10, 10)))
         data_iter = np.ones((2, 3, 2), dtype=np.uint16)
 
         s_iter = hs.signals.Signal1D(data_iter.copy())
         s_out = s.map(a_function, value=s_iter, inplace=False, lazy_result=True)
         s_out.compute()
-        assert (s_iter.data.dtype == data_iter.dtype)
+        assert s_iter.data.dtype == data_iter.dtype
         assert (s_iter.data == data_iter).all()
-        assert (s_out.data == 1.).all()
+        assert (s_out.data == 1.0).all()
 
 
 class TestGetDropAxisNewAxis:
@@ -746,27 +750,36 @@ def test_dask_array_store():
     def a_function(image):
         image = image * 101
         return image
+
     s = hs.signals.Signal2D(np.ones((10, 12, 20, 24)), dtype=np.int16)
     s.map(a_function, inplace=True, lazy_result=False)
     assert (s.data == 101).all()
 
 
 class TestOutputShape:
-    @pytest.mark.parametrize('shape', [(2, 2, 10, 10), (3, 30, 50, 20), (40, 50, 100, 120)])
+    @pytest.mark.parametrize(
+        "shape", [(2, 2, 10, 10), (3, 30, 50, 20), (40, 50, 100, 120)]
+    )
     def test_2d_input_1d_output(self, shape):
         dask_array = da.zeros(shape, chunks=(10, 10, 20, 20))
         s = hs.signals.Signal2D(dask_array).as_lazy()
-        def a_function(image):
-            return np.zeros((2, ))
-        s_out = s.map(a_function, inplace=False, lazy_result=True)
-        assert s.data.shape[:-2] + (2, ) == s_out.data.shape
 
-    @pytest.mark.parametrize('shape', [(2, 2, 10, 10), (3, 30, 50, 20), (40, 50, 100, 120)])
+        def a_function(image):
+            return np.zeros((2,))
+
+        s_out = s.map(a_function, inplace=False, lazy_result=True)
+        assert s.data.shape[:-2] + (2,) == s_out.data.shape
+
+    @pytest.mark.parametrize(
+        "shape", [(2, 2, 10, 10), (3, 30, 50, 20), (40, 50, 100, 120)]
+    )
     def test_2d_input_2d_output(self, shape):
         dask_array = da.zeros(shape, chunks=(10, 10, 20, 20))
         s = hs.signals.Signal2D(dask_array).as_lazy()
+
         def a_function(image):
             return np.zeros((2, 3))
+
         s_out = s.map(a_function, inplace=False, lazy_result=True)
         assert s.data.shape[:-2] + (2, 3) == s_out.data.shape
 
@@ -776,6 +789,7 @@ class TestFunctionChangingArgs:
         def a_function(image, animage):
             animage *= 1.5
             return image + animage
+
         s = hs.signals.Signal2D(np.zeros((2, 3, 10, 10)))
         animage_orig = np.arange(0, 100, dtype=np.float32).reshape(10, 10)
         animage = animage_orig.copy()
