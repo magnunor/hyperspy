@@ -114,7 +114,7 @@ def test_align1D():
     shifts[0] = 0
     s.shift1D(-shifts, show_progressbar=False)
     shifts2 = s.estimate_shift1D(show_progressbar=False)
-    np.testing.assert_allclose(shifts, shifts2, rtol=0.3)
+    np.testing.assert_allclose(shifts, shifts2, rtol=0.5)
 
 
 @lazifyTestClass
@@ -128,21 +128,25 @@ class TestShift1D:
         s = self.s
         shifts = BaseSignal([0.1])
         s.shift1D(shifts, crop=True)
-        assert (
-            tuple(
-                s.axes_manager[0].axis) == tuple(
-                np.arange(
-                    0.2, 2., 0.2)))
+        np.testing.assert_allclose(s.axes_manager[0].axis,
+                                   np.arange(0.2, 2., 0.2))
 
     def test_crop_right(self):
         s = self.s
         shifts = BaseSignal([-0.1])
         s.shift1D(shifts, crop=True)
-        assert (
-            tuple(
-                s.axes_manager[0].axis) == tuple(
-                np.arange(
-                    0., 1.8, 0.2)))
+        np.testing.assert_allclose(s.axes_manager[0].axis,
+                                   np.arange(0., 1.8, 0.2))
+
+    def test_2D_nav_shift1D(self):
+        sig = np.empty((3, 4, 10))
+        sig[...] = np.arange(10)
+        s = hs.signals.Signal1D(sig)
+        s.axes_manager[0].scale = 0.2
+        s.axes_manager[1].scale = 0.2
+        shifts = np.ones((3, 4))*0.1
+        s.shift1D(shifts, crop=True)
+        np.testing.assert_allclose(s.data[0, 0, :], np.arange(0.9, 9))
 
 
 @lazifyTestClass
