@@ -4800,7 +4800,7 @@ class BaseSignal(FancySlicing,
         elif axes_changed:
             am.remove(am.signal_axes[len(output_signal_size):])
             for ind in range(len(output_signal_size) - am.signal_dimension, 0, -1):
-                am._append_axis(output_signal_size[-ind], navigate=False)
+                am._append_axis(size=output_signal_size[-ind], navigate=False)
         if output_signal_size == () and am.navigation_dimension == 0:
             add_scalar_axis(sig)
         if not ragged:
