@@ -4748,6 +4748,7 @@ class BaseSignal(FancySlicing,
 
         args, arg_keys = old_sig._get_iterating_kwargs(iterating_kwargs) 
 
+        calculated = False
         if autodetermine: #trying to guess the output d-type and size from one signal
             testing_kwargs = {}
             for ikey, key in enumerate(arg_keys):
@@ -4762,23 +4763,29 @@ class BaseSignal(FancySlicing,
                 output_signal_size = temp_output_signal_size
             if output_dtype is None:
                 output_dtype = temp_output_dtype
+            # For signals with no navigation dimensions, the autodetermine does the calculation
+            # so we don't have to use dask.map_blocks
+            if nav_indexes == ():
+                mapped = da.from_array(test_data)
+                calculated = True
 
         drop_axis, new_axis, axes_changed = self._get_drop_axis_new_axis(output_signal_size)
-        chunks = tuple([old_sig.data.chunks[i] for i in sorted(nav_indexes)]) + output_signal_size
-        mapped = da.map_blocks(
-            process_function_blockwise,
-            old_sig.data,
-            *args,
-            function=function,
-            nav_indexes=nav_indexes,
-            drop_axis=drop_axis,
-            new_axis=new_axis,
-            output_signal_size=output_signal_size,
-            dtype=output_dtype,
-            chunks=chunks,
-            arg_keys=arg_keys,
-            **kwargs
-        )
+        if not calculated:
+            chunks = tuple([old_sig.data.chunks[i] for i in sorted(nav_indexes)]) + output_signal_size
+            mapped = da.map_blocks(
+                process_function_blockwise,
+                old_sig.data,
+                *args,
+                function=function,
+                nav_indexes=nav_indexes,
+                drop_axis=drop_axis,
+                new_axis=new_axis,
+                output_signal_size=output_signal_size,
+                dtype=output_dtype,
+                chunks=chunks,
+                arg_keys=arg_keys,
+                **kwargs
+            )
         data_stored = False
         if inplace:
             if not self._lazy and not lazy_result and (mapped.shape == self.data.shape) and (mapped.dtype == self.data.dtype):
