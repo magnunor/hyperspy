@@ -8,6 +8,72 @@ https://hyperspy.readthedocs.io/en/latest/user_guide/changes.html
 
 .. towncrier release notes start
 
+Hyperspy 1.6.4 (2021-07-08)
+===========================
+
+Bug Fixes
+---------
+
+- Fix parsing EELS aperture label with unexpected value, for example 'Imaging' instead of '5 mm' (`#2772 <https://github.com/hyperspy/hyperspy/issues/2772>`_)
+- Lazy datasets can now be saved out as blockfiles (blo) (`#2774 <https://github.com/hyperspy/hyperspy/issues/2774>`_)
+- ComplexSignals can now be rebinned without error (`#2789 <https://github.com/hyperspy/hyperspy/issues/2789>`_)
+- Method `estimate_parameters` in `Polynomial` component now supports order
+  greater than 10 (`#2790 <https://github.com/hyperspy/hyperspy/issues/2790>`_)
+- Update minimal requirement of dependency importlib_metadata from
+  >= 1.6.0 to >= 3.6 (`#2793 <https://github.com/hyperspy/hyperspy/issues/2793>`_)
+
+
+Enhancements
+------------
+
+- When saving a dataset with a dtype other than
+  `uint8 <https://numpy.org/doc/stable/user/basics.types.html>`_ to a blockfile
+  (blo) it is now possible to provide the argument ``intensity_scaling`` to map
+  the intensity values to the reduced range (`#2774 <https://github.com/hyperspy/hyperspy/issues/2774>`_)
+
+
+Maintenance
+-----------
+
+- Fix image comparison failure with numpy 1.21.0 (`#2774 <https://github.com/hyperspy/hyperspy/issues/2774>`_)
+
+
+Hyperspy 1.6.3 (2021-06-10)
+===========================
+
+Bug Fixes
+---------
+
+- Fix ROI snapping regression (`#2720 <https://github.com/hyperspy/hyperspy/issues/2720>`_)
+- Fix :py:meth:`~._signals.signal1d.Signal1D.shift1D`, :py:meth:`~._signals.signal1d.Signal1D.align1D` and :py:meth:`~._signals.eels.EELSSpectrum.align_zero_loss_peak` regression with navigation dimension larger than one (`#2729 <https://github.com/hyperspy/hyperspy/issues/2729>`_)
+- Fix disconnecting events when closing figure and :py:meth:`~._signals.signal1d.Signal1D.remove_background` is active (`#2734 <https://github.com/hyperspy/hyperspy/issues/2734>`_)
+- Fix :py:meth:`~.signal.BaseSignal.map` regression of lazy signal with navigation chunks of size of 1 (`#2748 <https://github.com/hyperspy/hyperspy/issues/2748>`_)
+- Fix unclear error message when reading a hspy file saved using blosc compression and `hdf5plugin` hasn't been imported previously (`#2760 <https://github.com/hyperspy/hyperspy/issues/2760>`_)
+- Fix saving ``navigator`` of lazy signal (`#2763 <https://github.com/hyperspy/hyperspy/issues/2763>`_)
+
+
+Enhancements
+------------
+
+- Use ``importlib_metadata`` instead of ``pkg_resources`` for extensions
+  registration to speed up the import process and making it possible to install
+  extensions and use them without restarting the python session (`#2709 <https://github.com/hyperspy/hyperspy/issues/2709>`_)
+- Don't import hyperspy extensions when registering extensions (`#2711 <https://github.com/hyperspy/hyperspy/issues/2711>`_)
+- Improve docstrings of various fitting methods (`#2724 <https://github.com/hyperspy/hyperspy/issues/2724>`_)
+- Improve speed of :py:meth:`~._signals.signal1d.Signal1D.shift1D` (`#2750 <https://github.com/hyperspy/hyperspy/issues/2750>`_)
+- Add support for recent EMPAD file; scanning size wasn't parsed. (`#2757 <https://github.com/hyperspy/hyperspy/issues/2757>`_)
+
+
+Maintenance
+-----------
+
+- Add drone CI to test arm64 platform (`#2713 <https://github.com/hyperspy/hyperspy/issues/2713>`_)
+- Fix latex doc build on github actions (`#2714 <https://github.com/hyperspy/hyperspy/issues/2714>`_)
+- Use towncrier to generate changelog automatically (`#2717 <https://github.com/hyperspy/hyperspy/issues/2717>`_)
+- Fix test suite to support dask 2021.4.1 (`#2722 <https://github.com/hyperspy/hyperspy/issues/2722>`_)
+- Generate changelog when building doc to keep the changelog of the development doc up to date on https://hyperspy.readthedocs.io/en/latest (`#2758 <https://github.com/hyperspy/hyperspy/issues/2758>`_)
+- Use mamba and conda-forge channel on azure pipeline (`#2759 <https://github.com/hyperspy/hyperspy/issues/2759>`_)
+
 
 .. _changes_1.6.2:
 
@@ -25,19 +91,19 @@ Bug Fixes
 
 * Fix disconnect event when closing navigator only plot (fixes `#996 <https://github.com/hyperspy/hyperspy/issues/996>`_), (`#2631 <https://github.com/hyperspy/hyperspy/pull/2631>`_)
 * Fix incorrect chunksize when saving EMD NCEM file and specifying chunks (`#2629 <https://github.com/hyperspy/hyperspy/pull/2629>`_)
-* Fix ``find_peaks`` GUIs call with laplacian/difference of gaussian methods (`#2622 <https://github.com/hyperspy/hyperspy/issues/2622>`_ and `#2647 <https://github.com/hyperspy/hyperspy/pull/2647>`_)
+* Fix :py:meth:`~._signals.signal2d.Signal2D.find_peaks` GUIs call with laplacian/difference of gaussian methods (`#2622 <https://github.com/hyperspy/hyperspy/issues/2622>`_ and `#2647 <https://github.com/hyperspy/hyperspy/pull/2647>`_)
 * Fix various bugs with ``CircleWidget`` and ``Line2DWidget`` (`#2625 <https://github.com/hyperspy/hyperspy/pull/2625>`_)
 * Fix setting signal range of model with negative axis scales (`#2656 <https://github.com/hyperspy/hyperspy/pull/2656>`_)
 * Fix and improve mask handling in lazy decomposition; Close `#2605 <https://github.com/hyperspy/hyperspy/issues/2605>`_ (`#2657 <https://github.com/hyperspy/hyperspy/pull/2657>`_)
 * Plot scalebar when the axis scales have different sign, fixes `#2557 <https://github.com/hyperspy/hyperspy/issues/2557>`_ (`#2657 <https://github.com/hyperspy/hyperspy/pull/2657>`_)
-* Fix align1D returning zeros shifts (`#2675 <https://github.com/hyperspy/hyperspy/pull/2675>`_)
+* Fix :py:meth:`~._signals.signal1d.Signal1D.align1D` returning zeros shifts (`#2675 <https://github.com/hyperspy/hyperspy/pull/2675>`_)
 * Fix finding dataset path for EMD NCEM file containing more than one dataset in a  group (`#2673 <https://github.com/hyperspy/hyperspy/pull/2673>`_)
 * Fix squeeze function for multiple zero-dimensional entries, improved docstring, added to user guide. (`#2676 <https://github.com/hyperspy/hyperspy/pull/2676>`_)
 * Fix error in Cliff-Lorimer quantification using absorption correction (`#2681 <https://github.com/hyperspy/hyperspy/pull/2681>`_)
 * Fix ``navigation_mask`` bug in decomposition when provided as numpy array (`#2679 <https://github.com/hyperspy/hyperspy/pull/2679>`_)
 * Fix closing image contrast tool and setting vmin/vmax values (`#2684 <https://github.com/hyperspy/hyperspy/pull/2684>`_)
 * Fix range widget with matplotlib 3.4 (`#2684 <https://github.com/hyperspy/hyperspy/pull/2684>`_)
-* Fix bug in `hs.interactive` with function returning `None`. Improve user guide example. (`#2686 <https://github.com/hyperspy/hyperspy/pull/2686>`_)
+* Fix bug in :py:func:`~.interactive.interactive` with function returning `None`. Improve user guide example. (`#2686 <https://github.com/hyperspy/hyperspy/pull/2686>`_)
 * Fix broken events when changing signal type `#2683 <https://github.com/hyperspy/hyperspy/pull/2683>`_
 * Fix setting offset in rebin: the offset was changed in the wrong axis (`#2690 <https://github.com/hyperspy/hyperspy/pull/2690>`_)
 * Fix reading XRF bruker file, close `#2689 <https://github.com/hyperspy/hyperspy/issues/2689>`_ (`#2694 <https://github.com/hyperspy/hyperspy/pull/2694>`_)
@@ -51,7 +117,7 @@ Enhancements
 * Improve error message when file not found (`#2597 <https://github.com/hyperspy/hyperspy/pull/2597>`_)
 * Add update instructions to user guide (`#2621 <https://github.com/hyperspy/hyperspy/pull/2621>`_)
 * Improve plotting navigator of lazy signals, add ``navigator`` setter to lazy signals (`#2631 <https://github.com/hyperspy/hyperspy/pull/2631>`_)
-* Use 'dask_auto' when rechunk=True in ``change_dtype`` for lazy signal (`#2645 <https://github.com/hyperspy/hyperspy/pull/2645>`_)
+* Use ``'dask_auto'`` when rechunk=True in :py:meth:`~._signals.lazy.LazySignal.change_dtype` for lazy signal (`#2645 <https://github.com/hyperspy/hyperspy/pull/2645>`_)
 * Use dask chunking when saving lazy signal instead of rechunking and leave the user to decide what is the suitable chunking (`#2629 <https://github.com/hyperspy/hyperspy/pull/2629>`_)
 * Added lazy reading support for FFT and DPC datasets in FEI emd datasets (`#2651 <https://github.com/hyperspy/hyperspy/pull/2651>`_).
 * Improve error message when initialising SpanROI with left >= right (`#2604 <https://github.com/hyperspy/hyperspy/pull/2604>`_)
@@ -59,8 +125,8 @@ Enhancements
 * Add Releasing guide (`#2595 <https://github.com/hyperspy/hyperspy/pull/2595>`_)
 * Add support for python 3.9, fix deprecation warning with matplotlib 3.4.0 and bump minimum requirement to numpy 1.17.1 and dask 2.1.0. (`#2663 <https://github.com/hyperspy/hyperspy/pull/2663>`_)
 * Use native endianess in numba jitted functions. (`#2678 <https://github.com/hyperspy/hyperspy/pull/2678>`_)
-* Add option not to snap ROI when calling the `interactive` method of a ROI (`#2686 <https://github.com/hyperspy/hyperspy/pull/2686>`_)
-* Make DictionaryTreeBrowser lazy by default - see `#368 <https://github.com/hyperspy/hyperspy/issues/368>`_ (`#2623 <https://github.com/hyperspy/hyperspy/pull/2623>`_)
+* Add option not to snap ROI when calling the :py:meth:`~.roi.BaseInteractiveROI.interactive` method of a ROI (`#2686 <https://github.com/hyperspy/hyperspy/pull/2686>`_)
+* Make :py:class:`~.misc.utils.DictionaryTreeBrowser` lazy by default - see `#368 <https://github.com/hyperspy/hyperspy/issues/368>`_ (`#2623 <https://github.com/hyperspy/hyperspy/pull/2623>`_)
 * Speed up setting CI on azure pipeline (`#2694 <https://github.com/hyperspy/hyperspy/pull/2694>`_)
 * Improve performance issue with the map method of lazy signal (`#2617 <https://github.com/hyperspy/hyperspy/pull/2617>`_)
 * Add option to copy/load original metadata in ``hs.stack`` and ``hs.load`` to avoid large ``original_metadata`` which can slowdown processing. Close `#1398 <https://github.com/hyperspy/hyperspy/issues/1398>`_, `#2045 <https://github.com/hyperspy/hyperspy/issues/2045>`_, `#2536 <https://github.com/hyperspy/hyperspy/issues/2536>`_ and `#1568 <https://github.com/hyperspy/hyperspy/issues/1568>`_. (`#2691 <https://github.com/hyperspy/hyperspy/pull/2691>`_)
@@ -74,7 +140,7 @@ Maintenance
 * Run test suite against upstream dependencies (numpy, scipy, scikit-learn and scikit-image) (`#2616 <https://github.com/hyperspy/hyperspy/pull/2616>`_)
 * Update external links in the loading data section of the user guide (`#2627 <https://github.com/hyperspy/hyperspy/pull/2627>`_)
 * Fix various future and deprecation warnings from numpy and scikit-learn (`#2646 <https://github.com/hyperspy/hyperspy/pull/2646>`_)
-* Fix ``iterpath`` VisibleDeprecationWarning when using ``fit_component`` (`#2654 <https://github.com/hyperspy/hyperspy/pull/2654>`_)
+* Fix ``iterpath`` VisibleDeprecationWarning when using :py:meth:`~.models.model1d.Model1D.fit_component` (`#2654 <https://github.com/hyperspy/hyperspy/pull/2654>`_)
 * Add integration test suite documentation in the developer guide. (`#2663 <https://github.com/hyperspy/hyperspy/pull/2663>`_)
 * Fix SkewNormal component compatibility with sympy 1.8 (`#2701 <https://github.com/hyperspy/hyperspy/pull/2701>`_)
 
@@ -106,7 +172,7 @@ NEW
   * :ref:`usid-format`
   * :ref:`empad-format`
   * Prismatic EMD format, see :ref:`emd-format`
-* :meth:`~._signals.eels.EELSSpectrum_mixin.print_edges_near_energy` method
+* :meth:`~._signals.eels.EELSSpectrum.print_edges_near_energy` method
   that, if the `hyperspy-gui-ipywidgets package
   <https://github.com/hyperspy/hyperspy_gui_ipywidgets>`_
   is installed, includes an
@@ -130,12 +196,12 @@ Enhancements
 * Further improvements to the contrast adjustment tool.
   Test it by pressing the ``h`` key on any image.
 * The following components have been rewritten using
-  :py:class:`hyperspy._components.expression.Expression`, boosting their
+  :py:class:`~._components.expression.Expression`, boosting their
   speeds among other benefits.
 
-  * :py:class:`hyperspy._components.arctan.Arctan`
-  * :py:class:`hyperspy._components.voigt.Voigt`
-  * :py:class:`hyperspy._components.heaviside.HeavisideStep`
+  * :py:class:`~._components.arctan.Arctan`
+  * :py:class:`~._components.voigt.Voigt`
+  * :py:class:`~._components.heaviside.HeavisideStep`
 * The model fitting :py:meth:`~.model.BaseModel.fit` and
   :py:meth:`~.model.BaseModel.multifit` methods have been vastly improved. See
   :ref:`model.fitting` and the API changes section below.
@@ -152,7 +218,7 @@ Enhancements
   scikit-learn like algorithms, better API and much improved documentation.
   See :ref:`ml-label` and the API changes section below.
 * Add option to calculate the absolute thickness to the EELS
-  :meth:`~._signals.eels.EELSSpectrum_mixin.estimate_thickness` method.
+  :meth:`~._signals.eels.EELSSpectrum.estimate_thickness` method.
   See :ref:`eels_thickness-label`.
 * Vastly improved performance and memory footprint of the
   :py:meth:`~._signals.signal2d.Signal2D.estimate_shift2D` method.
@@ -1222,8 +1288,8 @@ Major bugs fixed
 
 API changes
 -----------
-* EELSSPectrum.find_low_loss_centre was renamed to estimate_zero_loss_peak_centre.
-* EELSSPectrum.calculate_FWHM was renamed to estimate_FWHM.
+* EELSSpectrum.find_low_loss_centre was renamed to estimate_zero_loss_peak_centre.
+* EELSSpectrum.calculate_FWHM was renamed to estimate_FWHM.
 
 .. _changes_0.5:
 
