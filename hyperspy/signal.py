@@ -4746,7 +4746,7 @@ class BaseSignal(FancySlicing,
         os_am = old_sig.axes_manager
         autodetermine = (output_signal_size is None or output_dtype is None) # try to guess output dtype and sig size?
 
-        args, arg_keys = old_sig._get_iterating_kwargs(iterating_kwargs) 
+        args, arg_keys = old_sig._get_iterating_kwargs(iterating_kwargs)
 
         calculated = False
         if autodetermine: #trying to guess the output d-type and size from one signal
