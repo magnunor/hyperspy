@@ -4567,7 +4567,6 @@ class BaseSignal(FancySlicing,
         function,
         show_progressbar=None,
         parallel=None,
-        max_workers=None,
         inplace=True,
         ragged=None,
         output_signal_size=None,
@@ -4694,20 +4693,31 @@ class BaseSignal(FancySlicing,
             # inspect.
             _logger.warning(error)
 
-        kwargs["output_signal_size"] = output_signal_size
-        kwargs["output_dtype"] = output_dtype
-        # Iteration over coordinates.
-        result = self._map_iterate(
-            function,
-            iterating_kwargs=ndkwargs,
-            show_progressbar=show_progressbar,
-            parallel=parallel,
-            max_workers=max_workers,
-            ragged=ragged,
-            inplace=inplace,
-            lazy_result=lazy_result,
-            **kwargs
-        )
+        if not ndkwargs and not lazy_result and (self.axes_manager.signal_dimension == 1 and
+                             "axis" in fargs):
+            kwargs['axis'] = self.axes_manager.signal_axes[-1].index_in_array
+
+            result = self._map_all(function, inplace=inplace, **kwargs)
+        # If the function has an axes argument
+        # we suppose that it can operate on the full array and we don't
+        # iterate over the coordinates.
+        elif not ndkwargs and not lazy_result and "axes" in fargs and not parallel:
+            kwargs['axes'] = tuple([axis.index_in_array for axis in
+                                    self.axes_manager.signal_axes])
+            result = self._map_all(function, inplace=inplace, **kwargs)
+        else:
+            kwargs["output_signal_size"] = output_signal_size
+            kwargs["output_dtype"] = output_dtype
+            # Iteration over coordinates.
+            result = self._map_iterate(
+                function,
+                iterating_kwargs=ndkwargs,
+                show_progressbar=show_progressbar,
+                ragged=ragged,
+                inplace=inplace,
+                lazy_result=lazy_result,
+                **kwargs
+            )
         if not inplace:
             return result
         else:
@@ -4715,12 +4725,19 @@ class BaseSignal(FancySlicing,
 
     map.__doc__ %= (SHOW_PROGRESSBAR_ARG, PARALLEL_ARG, MAX_WORKERS_ARG)
 
+    def _map_all(self, function, inplace=True, **kwargs):
+        """The function has to have either 'axis' or 'axes' keyword argument,
+        and hence support operating on the full dataset efficiently."""
+        newdata = function(self.data, **kwargs)
+        if inplace:
+            self.data = newdata
+            return None
+        return self._deepcopy_with_new_data(newdata)
+
     def _map_iterate(self,
                      function,
                      iterating_kwargs=None,
                      show_progressbar=None,
-                     parallel=None,
-                     max_workers=None,
                      ragged=False,
                      inplace=True,
                      output_signal_size=None,
