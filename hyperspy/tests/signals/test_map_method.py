@@ -976,11 +976,11 @@ class TestLazyNavChunkSize1:
     def test_signal2d(self):
         dask_array = da.zeros((10, 15, 32, 32), chunks=(1, 1, 32, 32))
         s = hs.signals.Signal2D(dask_array).as_lazy()
-        s_out = s.map(self.afunction, inplace=False, parallel=False, ragged=True)
+        s_out = s.map(self.afunction, inplace=False, parallel=False, ragged=True, lazy_result=True)
         s_out.compute()
 
     def test_signal1d(self):
         dask_array = da.zeros((10, 15, 32), chunks=(1, 1, 32))
         s = hs.signals.Signal1D(dask_array).as_lazy()
-        s_out = s.map(self.afunction, inplace=False, parallel=False, ragged=True)
+        s_out = s.map(self.afunction, inplace=False, parallel=False, ragged=True, lazy_result=True)
         s_out.compute()
