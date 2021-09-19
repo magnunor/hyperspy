@@ -4733,11 +4733,13 @@ class BaseSignal(FancySlicing,
             self.data = newdata
             self._lazy = False
             self._assign_subclass()
+            self.get_dimensions_from_data()
             return None
         else:
             sig = self._deepcopy_with_new_data(newdata)
             sig._lazy = False
             sig._assign_subclass()
+            sig.get_dimensions_from_data()
             return sig
 
     def _map_iterate(self,

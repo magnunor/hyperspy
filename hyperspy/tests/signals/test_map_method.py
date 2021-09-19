@@ -987,9 +987,83 @@ class TestLazyNavChunkSize1:
 
 
 
-def test_lazy_input_map_all():
-    dask_array = da.random.random((500, 500))
-    s = hs.signals.Signal2D(dask_array).as_lazy()
-    s_rot = s.map(function=rotate, angle=31, inplace=False, reshape=False, lazy_result=False, parallel=False)
-    assert not s_rot._lazy
-    assert not hasattr(s_rot.data, "compute")
+class TestLazyInputMapAll:
+    def test_not_inplace(self):
+        dask_array = da.random.random((500, 500)) + 2.0
+        s = hs.signals.Signal2D(dask_array).as_lazy()
+        s_rot = s.map(
+            function=rotate,
+            angle=31,
+            inplace=False,
+            reshape=False,
+            lazy_result=False,
+            parallel=False,
+        )
+        assert not s_rot._lazy
+        assert not hasattr(s_rot.data, "compute")
+        assert s._lazy
+        assert hasattr(s.data, "compute")
+        assert s_rot.data[0, 0] == 0.0
+        assert s_rot.data[0, -1] == 0.0
+        assert s_rot.data[-1, 0] == 0.0
+        assert s_rot.data[-1, -1] == 0.0
+        assert s.data[0, 0] != 0.0
+        assert s.data[0, -1] != 0.0
+        assert s.data[-1, 0] != 0.0
+        assert s.data[-1, -1] != 0.0
+
+    def test_inplace(self):
+        dask_array = da.random.random((500, 500)) + 2.0
+        s = hs.signals.Signal2D(dask_array).as_lazy()
+        s_rot = s.map(
+            function=rotate,
+            angle=31,
+            inplace=True,
+            reshape=False,
+            lazy_result=False,
+            parallel=False,
+        )
+        assert not s._lazy
+        assert not hasattr(s.data, "compute")
+        assert s.data[0, 0] == 0.0
+        assert s.data[0, -1] == 0.0
+        assert s.data[-1, 0] == 0.0
+        assert s.data[-1, -1] == 0.0
+
+
+class TestCompareMapAllvsMapIterate:
+    @pytest.mark.parametrize(
+        "shape", [(50, 50), (5, 50, 50), (3, 4, 50, 50), (3, 4, 5, 50, 50)]
+    )
+    def test_same_output_size(self, shape):
+        data = np.random.randint(1, 99, shape)
+        s = hs.signals.Signal2D(data)
+        kwargs = {
+            'function': rotate,
+            'angle': 31,
+            'inplace': False,
+            'reshape': False,
+            'lazy_result': False,
+        }
+        s_rot_not_par = s.map(**kwargs, parallel=False)
+        s_rot_par = s.map(**kwargs, parallel=True)
+        assert (s_rot_par.data == s_rot_not_par.data).all()
+
+    @pytest.mark.parametrize(
+        "shape", [(50, 50), (5, 50, 50), (3, 4, 50, 50), (3, 4, 5, 50, 50)]
+    )
+    def test_new_output_size(self, shape):
+        data = np.random.randint(1, 99, (2, 2, 50, 50))
+        s = hs.signals.Signal2D(data)
+        kwargs = {
+            'function': rotate,
+            'angle': 31,
+            'inplace': False,
+            'reshape': True,
+            'lazy_result': False,
+        }
+        s_rot_not_par = s.map(**kwargs, parallel=False)
+        s_rot_par = s.map(**kwargs, parallel=True)
+        assert (s_rot_par.data == s_rot_not_par.data).all()
+        assert s_rot_not_par.axes_manager.signal_shape != (50, 50)
+        assert s_rot_par.axes_manager.signal_shape != (50, 50)
