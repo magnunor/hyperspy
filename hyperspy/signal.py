@@ -4731,8 +4731,14 @@ class BaseSignal(FancySlicing,
         newdata = function(self.data, **kwargs)
         if inplace:
             self.data = newdata
+            self._lazy = False
+            self._assign_subclass()
             return None
-        return self._deepcopy_with_new_data(newdata)
+        else:
+            sig = self._deepcopy_with_new_data(newdata)
+            sig._lazy = False
+            sig._assign_subclass()
+            return sig
 
     def _map_iterate(self,
                      function,

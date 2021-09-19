@@ -984,3 +984,12 @@ class TestLazyNavChunkSize1:
         s = hs.signals.Signal1D(dask_array).as_lazy()
         s_out = s.map(self.afunction, inplace=False, parallel=False, ragged=True, lazy_result=True)
         s_out.compute()
+
+
+
+def test_lazy_input_map_all():
+    dask_array = da.random.random((500, 500))
+    s = hs.signals.Signal2D(dask_array).as_lazy()
+    s_rot = s.map(function=rotate, angle=31, inplace=False, reshape=False, lazy_result=False, parallel=False)
+    assert not s_rot._lazy
+    assert not hasattr(s_rot.data, "compute")
