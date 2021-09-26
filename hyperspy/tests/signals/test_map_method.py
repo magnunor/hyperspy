@@ -347,17 +347,6 @@ class TestLazyMap:
         with pytest.raises(ValueError):
             self.s.map(function=f, b=s_iter, inplace=False)
 
-    def test_map_iterate_array(self):
-        s = self.s
-        iter_array, _ = np.meshgrid(range(11), range(10))
-        f = lambda a, b: a + b
-        iterating_kwargs = {'b':iter_array.T}
-        with pytest.warns(VisibleDeprecationWarning):
-            s_out = s._map_iterate(function=f,
-                                   iterating_kwargs=iterating_kwargs,
-                                   inplace=False)
-        np.testing.assert_array_equal(s_out.mean(axis=(2, 3)).data, iter_array)
-
     def test_keep_navigation_chunks(self):
         s = self.s
         s_out = s.map(lambda x: x, inplace=False, lazy_result=True)
