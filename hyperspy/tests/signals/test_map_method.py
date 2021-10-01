@@ -860,6 +860,45 @@ def shift_intensity_function(image, shift, intensity, crop):
     return image_out
 
 
+class TestMapIterate:
+    def setup_method(self):
+        px, py, dx, dy = 20, 10, 200, 100
+        self.s = hs.signals.Signal2D(np.ones((py, px, dy, dx)))
+        self.px, self.py, self.dx, self.dy = px, py, dx, dy
+
+    def test_lazy_result_none(self):
+        s = self.s
+        s_out = s._map_iterate(np.sum, lazy_result=None, inplace=False)
+        assert (s_out.data == self.dx * self.dy).all()
+
+    def test_lazy_result_false(self):
+        s = self.s
+        s_out = s._map_iterate(np.sum, lazy_result=False, inplace=False)
+        assert (s_out.data == self.dx * self.dy).all()
+
+    def test_lazy_result_true(self):
+        s = self.s
+        s_out = s._map_iterate(np.sum, lazy_result=True, inplace=False)
+        s_out.compute()
+        assert (s_out.data == self.dx * self.dy).all()
+
+    def test_iterating_kwargs_none(self):
+        s = self.s
+        s_out = s._map_iterate(np.sum, iterating_kwargs=None)
+        s_out.compute()
+        assert (s_out.data == self.dx * self.dy).all()
+
+    def test_iterating_kwargs_none(self):
+        def add_sum(image, add):
+            out = np.sum(image) + add
+            return out
+        s = self.s
+        s_add = hs.signals.BaseSignal(2 * np.ones((10, 20))).T
+        s_out = s._map_iterate(
+            add_sum, inplace=False, iterating_kwargs={'add': s_add})
+        assert ((s_out.data == self.dx * self.dy) + 2).all()
+
+
 class TestFullProcessing:
     def setup_method(self):
         data_array = np.zeros((30, 40, 50, 60), dtype=np.uint16)
