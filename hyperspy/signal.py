@@ -4572,7 +4572,7 @@ class BaseSignal(FancySlicing,
         output_signal_size=None,
         output_dtype=None,
         lazy_result=False,
-        **kwargs
+        **kwargs,
     ):
         """Apply a function to the signal data at all the navigation
         coordinates.
@@ -4645,23 +4645,29 @@ class BaseSignal(FancySlicing,
 
         """
         # Separate ndkwargs depending on if they are BaseSignals.
+        self_nav_shape = self.axes_manager.navigation_shape
         ndkwargs = {}
         ndkeys = [key for key in kwargs if isinstance(kwargs[key], BaseSignal)]
         for key in ndkeys:
-            if kwargs[key].axes_manager.navigation_shape == self.axes_manager.navigation_shape:
+            nd_nav_shape = kwargs[key].axes_manager.navigation_shape
+            if nd_nav_shape == self_nav_shape:
                 ndkwargs[key] = kwargs.pop(key)
-            elif kwargs[key].axes_manager.navigation_shape == () or kwargs[key].axes_manager.navigation_shape == (1,):
-                kwargs[key] = np.squeeze(kwargs[key].data)  # this really isn't an iterating signal.
+            elif nd_nav_shape == () or nd_nav_shape == (1,):
+                # This really isn't an iterating signal.
+                kwargs[key] = np.squeeze(kwargs[key].data)
             else:
-                raise ValueError(f'The size of the navigation_shape for the kwarg {key} '
-                                 f'(<{kwargs[key].axes_manager.navigation_shape}> must be consistent'
-                                 f'with the size of the mapped signal '
-                                 f'<{self.axes_manager.navigation_shape}>')
+                raise ValueError(
+                    f"The size of the navigation_shape for the kwarg {key} "
+                    f"(<{nd_nav_shape}> must be consistent "
+                    f"with the size of the mapped signal "
+                    f"<{self_nav_shape}>"
+                )
         # TODO: Consider support for non-uniform signal axis
         if any([not ax.is_uniform for ax in self.axes_manager.signal_axes]):
             _logger.warning(
                 "At least one axis of the signal is non-uniform. Can your "
-                "`function` operate on non-uniform axes?")
+                "`function` operate on non-uniform axes?"
+            )
         else:
             # Check if the signal axes have inhomogeneous scales and/or units and
             # display in warning if yes.
@@ -4672,9 +4678,9 @@ class BaseSignal(FancySlicing,
                 units.add(self.axes_manager.signal_axes[i].units)
             if len(units) != 1 or len(scale) != 1:
                 _logger.warning(
-                    "The function you applied does not take into "
-                    "account the difference of units and of scales in-between"
-                    " axes.")
+                    "The function you applied does not take into account "
+                    "the difference of units and of scales in-between axes."
+                )
         # If the function has an axis argument and the signal dimension is 1,
         # we suppose that it can operate on the full array and we don't
         # iterate over the coordinates.
@@ -4685,9 +4691,10 @@ class BaseSignal(FancySlicing,
             if not isinstance(function, np.ufunc):
                 fargs = inspect.signature(function).parameters.keys()
             else:
-                _logger.warning(f"The function `{function.__name__}` can "
-                                "directly operate on hyperspy signals and it "
-                                "is not necessary to use `map`.")
+                _logger.warning(
+                    f"The function `{function.__name__}` can directly operate "
+                    "on hyperspy signals and it is not necessary to use `map`."
+                )
         except TypeError as error:
             # This is probably a Cython function that is not supported by
             # inspect.
@@ -4716,7 +4723,7 @@ class BaseSignal(FancySlicing,
                 ragged=ragged,
                 inplace=inplace,
                 lazy_result=lazy_result,
-                **kwargs
+                **kwargs,
             )
         if not inplace:
             return result
@@ -4742,16 +4749,18 @@ class BaseSignal(FancySlicing,
             sig.get_dimensions_from_data()
             return sig
 
-    def _map_iterate(self,
-                     function,
-                     iterating_kwargs=None,
-                     show_progressbar=None,
-                     ragged=False,
-                     inplace=True,
-                     output_signal_size=None,
-                     output_dtype=None,
-                     lazy_result=None,
-                     **kwargs):
+    def _map_iterate(
+        self,
+        function,
+        iterating_kwargs=None,
+        show_progressbar=None,
+        ragged=False,
+        inplace=True,
+        output_signal_size=None,
+        output_dtype=None,
+        lazy_result=None,
+        **kwargs,
+    ):
         if lazy_result is None:
             lazy_result = self._lazy
         if not self._lazy:
@@ -4767,9 +4776,13 @@ class BaseSignal(FancySlicing,
 
         nav_indexes = s_input.axes_manager.navigation_indices_in_array
         chunk_span = np.equal(s_input.data.chunksize, s_input.data.shape)
-        chunk_span = [chunk_span[i] for i in s_input.axes_manager.signal_indices_in_array]
+        chunk_span = [
+            chunk_span[i] for i in s_input.axes_manager.signal_indices_in_array
+        ]
         if not all(chunk_span):
-            _logger.info("The chunk size needs to span the full signal size, rechunking...")
+            _logger.info(
+                "The chunk size needs to span the full signal size, rechunking..."
+            )
             old_sig = s_input.rechunk(inplace=False, nav_chunks=None)
         else:
             old_sig = s_input
@@ -4778,7 +4791,7 @@ class BaseSignal(FancySlicing,
 
         args, arg_keys = old_sig._get_iterating_kwargs(iterating_kwargs)
 
-        if autodetermine: #trying to guess the output d-type and size from one signal
+        if autodetermine:  # trying to guess the output d-type and size from one signal
             testing_kwargs = {}
             for ikey, key in enumerate(arg_keys):
                 test_ind = (0,) * len(os_am.navigation_axes)
@@ -4786,7 +4799,10 @@ class BaseSignal(FancySlicing,
             testing_kwargs = {**kwargs, **testing_kwargs}
             test_data = np.array(old_sig.inav[(0,) * len(os_am.navigation_shape)].data.compute())
             temp_output_signal_size, temp_output_dtype = guess_output_signal_size(
-                test_signal=test_data, function=function, ragged=ragged, **testing_kwargs
+                test_signal=test_data,
+                function=function,
+                ragged=ragged,
+                **testing_kwargs,
             )
             if output_signal_size is None:
                 output_signal_size = temp_output_signal_size
@@ -4811,7 +4827,12 @@ class BaseSignal(FancySlicing,
         )
         data_stored = False
         if inplace:
-            if not self._lazy and not lazy_result and (mapped.shape == self.data.shape) and (mapped.dtype == self.data.dtype):
+            if (
+                not self._lazy
+                and not lazy_result
+                and (mapped.shape == self.data.shape)
+                and (mapped.dtype == self.data.dtype)
+            ):
                 # da.store is used to avoid unnecessary amount of memory usage.
                 # By using it here, the contents in mapped is written directly to
                 # the existing NumPy array, avoiding a potential doubling of memory use.
@@ -4828,7 +4849,7 @@ class BaseSignal(FancySlicing,
         if ragged:
             am.remove(am.signal_axes)
         elif axes_changed:
-            am.remove(am.signal_axes[len(output_signal_size):])
+            am.remove(am.signal_axes[len(output_signal_size) :])
             for ind in range(len(output_signal_size) - am.signal_dimension, 0, -1):
                 am._append_axis(size=output_signal_size[-ind], navigate=False)
         if output_signal_size == () and am.navigation_dimension == 0:
