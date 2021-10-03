@@ -1251,44 +1251,6 @@ def guess_output_signal_size(test_signal,
         output_signal_size = output.shape
     return output_signal_size, output_dtype
 
-def map_result_construction(signal,
-                            inplace,
-                            result,
-                            ragged,
-                            sig_shape=None,
-                            lazy=False):
-    from hyperspy.signals import BaseSignal
-    from hyperspy._lazy_signals import LazySignal
-    res = None
-    if inplace:
-        sig = signal
-    else:
-        res = sig = signal._deepcopy_with_new_data()
-
-    if ragged:
-        sig.data = result
-        sig.axes_manager.remove(sig.axes_manager.signal_axes)
-        sig.__class__ = LazySignal if lazy else BaseSignal
-        sig.__init__(**sig._to_dictionary(add_models=True))
-    else:
-        if not sig._lazy and sig.data.shape == result.shape and np.can_cast(
-                result.dtype, sig.data.dtype):
-            sig.data[:] = result
-        else:
-            sig.data = result
-
-        # remove if too many axes
-        sig.axes_manager.remove(sig.axes_manager.signal_axes[len(sig_shape):])
-        # add additional required axes
-        for ind in range(
-                len(sig_shape) - sig.axes_manager.signal_dimension, 0, -1):
-            sig.axes_manager._append_axis(size=sig_shape[-ind], navigate=False)
-    if not ragged:
-        sig.get_dimensions_from_data()
-    if not sig.axes_manager._axes:
-        add_scalar_axis(sig, lazy=lazy)
-    return res
-
 
 def multiply(iterable):
     """Return product of sequence of numbers.
