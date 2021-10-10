@@ -1039,7 +1039,7 @@ class EELSSpectrum(Signal1D):
 
     def richardson_lucy_deconvolution(self, psf, iterations=15,
                                       show_progressbar=None,
-                                      parallel=None):
+                                      parallel=None, max_workers=None):
         """1D Richardson-Lucy Poissonian deconvolution of
         the spectrum by the given kernel.
 
@@ -1052,6 +1052,7 @@ class EELSSpectrum(Signal1D):
         iterations : int
             Number of iterations of the deconvolution. Note that
             increasing the value will increase the noise amplification.
+        %s
         %s
         %s
 
@@ -1091,7 +1092,8 @@ class EELSSpectrum(Signal1D):
 
         ds = self.map(deconv_function, kernel=psf, iterations=iterations,
                       psf_size=psf_size, show_progressbar=show_progressbar,
-                      parallel=parallel, ragged=False, inplace=False)
+                      parallel=parallel, max_workers=max_workers,
+                      ragged=False, inplace=False)
 
         ds.metadata.General.title += (
             ' after Richardson-Lucy deconvolution %i iterations' %
@@ -1101,7 +1103,7 @@ class EELSSpectrum(Signal1D):
                 '_after_R-L_deconvolution_%iiter' % iterations)
         return ds
 
-    richardson_lucy_deconvolution.__doc__ %= (SHOW_PROGRESSBAR_ARG, PARALLEL_ARG)
+    richardson_lucy_deconvolution.__doc__ %= (SHOW_PROGRESSBAR_ARG, PARALLEL_ARG, MAX_WORKERS_ARG)
 
     def _are_microscope_parameters_missing(self, ignore_parameters=[]):
         """

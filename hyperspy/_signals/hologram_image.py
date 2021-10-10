@@ -30,7 +30,7 @@ from hyperspy._signals.lazy import LazySignal
 from hyperspy.misc.holography.reconstruct import (
     reconstruct, estimate_sideband_position, estimate_sideband_size)
 from hyperspy.misc.holography.tools import calculate_carrier_frequency, estimate_fringe_contrast_fourier
-from hyperspy.docstrings.signal import SHOW_PROGRESSBAR_ARG, PARALLEL_ARG
+from hyperspy.docstrings.signal import SHOW_PROGRESSBAR_ARG, PARALLEL_ARG, MAX_WORKERS_ARG
 
 _logger = logging.getLogger(__name__)
 
@@ -182,6 +182,7 @@ class HologramImage(Signal2D):
         high_cf=True,
         show_progressbar=False,
         parallel=None,
+        max_workers=None,
     ):
         """
         Estimates the position of the sideband and returns its position.
@@ -195,6 +196,7 @@ class HologramImage(Signal2D):
         high_cf : bool, optional
             If False, the highest carrier frequency allowed for the sideband location is equal to
             half of the Nyquist frequency (Default: True).
+        %s
         %s
         %s
 
@@ -232,6 +234,7 @@ class HologramImage(Signal2D):
             show_progressbar=show_progressbar,
             inplace=False,
             parallel=parallel,
+            max_workers=max_workers,
             ragged=False)
 
         # Workaround to a map disfunctionality:
@@ -239,13 +242,14 @@ class HologramImage(Signal2D):
 
         return sb_position
 
-    estimate_sideband_position.__doc__ %= (SHOW_PROGRESSBAR_ARG, PARALLEL_ARG)
+    estimate_sideband_position.__doc__ %= (SHOW_PROGRESSBAR_ARG, PARALLEL_ARG, MAX_WORKERS_ARG)
 
     def estimate_sideband_size(
         self,
         sb_position,
         show_progressbar=False,
         parallel=None,
+        max_workers=None,
     ):
         """
         Estimates the size of the sideband and returns its size.
@@ -254,6 +258,7 @@ class HologramImage(Signal2D):
         ----------
         sb_position : BaseSignal
             The sideband position (y, x), referred to the non-shifted FFT.
+        %s
         %s
         %s
 
@@ -287,11 +292,12 @@ class HologramImage(Signal2D):
             show_progressbar=show_progressbar,
             inplace=False,
             parallel=parallel,
+            max_workers=max_workers,
             ragged=False)
 
         return sb_size
 
-    estimate_sideband_size.__doc__ %= (SHOW_PROGRESSBAR_ARG, PARALLEL_ARG)
+    estimate_sideband_size.__doc__ %= (SHOW_PROGRESSBAR_ARG, PARALLEL_ARG, MAX_WORKERS_ARG)
 
     def reconstruct_phase(
         self,
@@ -307,6 +313,7 @@ class HologramImage(Signal2D):
         store_parameters=True,
         show_progressbar=False,
         parallel=None,
+        max_workers=None,
     ):
         """Reconstruct electron holograms. Operates on multidimensional
         hyperspy signals. There are several usage schemes:
@@ -350,6 +357,7 @@ class HologramImage(Signal2D):
             Shows details of the reconstruction (i.e. SB selection).
         store_parameters : bool
             Store reconstruction parameters in metadata
+        %s
         %s
         %s
 
@@ -524,6 +532,7 @@ class HologramImage(Signal2D):
             show_progressbar=show_progressbar,
             inplace=False,
             parallel=parallel,
+            max_workers=max_workers,
             ragged=False)
 
         # Reconstructing reference wave and applying it (division):
@@ -569,6 +578,7 @@ class HologramImage(Signal2D):
                 show_progressbar=show_progressbar,
                 inplace=False,
                 parallel=parallel,
+                max_workers=max_workers,
                 ragged=False)
 
         else:
@@ -584,6 +594,7 @@ class HologramImage(Signal2D):
                 show_progressbar=show_progressbar,
                 inplace=False,
                 parallel=parallel,
+                max_workers=max_workers,
                 ragged=False)
 
         wave_image = wave_object / wave_reference
@@ -614,7 +625,7 @@ class HologramImage(Signal2D):
 
         return wave_image
 
-    reconstruct_phase.__doc__ %= (SHOW_PROGRESSBAR_ARG, PARALLEL_ARG)
+    reconstruct_phase.__doc__ %= (SHOW_PROGRESSBAR_ARG, PARALLEL_ARG, MAX_WORKERS_ARG)
 
     def statistics(
         self,
@@ -626,6 +637,7 @@ class HologramImage(Signal2D):
         single_values=True,
         show_progressbar=False,
         parallel=None,
+        max_workers=None,
     ):
         """
         Calculates following statistics for off-axis electron holograms:
@@ -668,6 +680,7 @@ class HologramImage(Signal2D):
         single_values : bool, optional
             If True calculates statistics only for the first navigation pixels and
             returns the values as single floats (Default: True)
+        %s
         %s
         %s
 
@@ -720,7 +733,8 @@ class HologramImage(Signal2D):
                                        inplace=False,
                                        ragged=False,
                                        show_progressbar=show_progressbar,
-                                       parallel=parallel)
+                                       parallel=parallel,
+                                       max_workers=max_workers)
         fringe_sampling = np.divide(1., carrier_freq_px)
 
         ureg = UnitRegistry()
@@ -750,7 +764,8 @@ class HologramImage(Signal2D):
                                           inplace=False,
                                           ragged=False,
                                           show_progressbar=show_progressbar,
-                                          parallel=parallel)
+                                          parallel=parallel,
+                                          max_workers=max_workers)
         fringe_spacing = np.divide(1., carrier_freq_units)
 
         # Calculate carrier frequency in mrad:
@@ -783,7 +798,8 @@ class HologramImage(Signal2D):
                                            inplace=False,
                                            ragged=False,
                                            show_progressbar=show_progressbar,
-                                           parallel=parallel)
+                                           parallel=parallel,
+                                           max_workers=max_workers)
         elif fringe_contrast_algorithm == 'statistical':
             if single_values:
                 fringe_contrast = _first_nav_pixel_data(
@@ -801,7 +817,7 @@ class HologramImage(Signal2D):
                 'Carrier frequency ({:~})'.format((1. / units).units): carrier_freq_units,
                 'Carrier frequency (mrad)': carrier_freq_mrad}
 
-    statistics.__doc__ %= (SHOW_PROGRESSBAR_ARG, PARALLEL_ARG)
+    statistics.__doc__ %= (SHOW_PROGRESSBAR_ARG, PARALLEL_ARG, MAX_WORKERS_ARG)
 
 
 class LazyHologramImage(LazySignal, HologramImage):
