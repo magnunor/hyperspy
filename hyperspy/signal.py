@@ -4572,6 +4572,7 @@ class BaseSignal(FancySlicing,
         output_signal_size=None,
         output_dtype=None,
         lazy_result=False,
+        max_workers=None,
         **kwargs,
     ):
         """Apply a function to the signal data at all the navigation
@@ -4723,6 +4724,7 @@ class BaseSignal(FancySlicing,
                 ragged=ragged,
                 inplace=inplace,
                 lazy_result=lazy_result,
+                max_workers=max_workers,
                 **kwargs,
             )
         if not inplace:
@@ -4759,6 +4761,7 @@ class BaseSignal(FancySlicing,
         output_signal_size=None,
         output_dtype=None,
         lazy_result=None,
+        max_workers=None,
         **kwargs,
     ):
         if lazy_result is None:
@@ -4836,7 +4839,13 @@ class BaseSignal(FancySlicing,
                 # da.store is used to avoid unnecessary amount of memory usage.
                 # By using it here, the contents in mapped is written directly to
                 # the existing NumPy array, avoiding a potential doubling of memory use.
-                da.store(mapped, self.data, dtype=mapped.dtype, compute=True)
+                da.store(
+                    mapped,
+                    self.data,
+                    dtype=mapped.dtype,
+                    compute=True,
+                    num_workers=max_workers,
+                )
                 data_stored = True
             else:
                 self.data = mapped
@@ -4859,7 +4868,7 @@ class BaseSignal(FancySlicing,
         sig._assign_subclass()
         if not lazy_result:
             if not data_stored:
-                sig.data = sig.data.compute()
+                sig.data = sig.data.compute(num_workers=max_workers)
         return sig
 
     def _get_drop_axis_new_axis(self, output_signal_size):
