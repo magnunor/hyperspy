@@ -556,11 +556,13 @@ class Signal1D(BaseSignal, CommonSignal1D):
                 **kwargs)
             dat[i1:i2] = dat_int(list(range(i1, i2)))
             return dat
-        self._map_iterate(interpolating_function,
-                          ragged=False,
-                          parallel=parallel,
-                          show_progressbar=show_progressbar,
-                          max_workers=max_workers)
+        self.map(
+            interpolating_function,
+            ragged=False,
+            parallel=parallel,
+            show_progressbar=show_progressbar,
+            max_workers=max_workers,
+        )
         self.events.data_changed.trigger(obj=self)
 
     interpolate_in_between.__doc__ %= (SHOW_PROGRESSBAR_ARG, PARALLEL_ARG, MAX_WORKERS_ARG)
