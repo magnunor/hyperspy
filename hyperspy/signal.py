@@ -4571,7 +4571,7 @@ class BaseSignal(FancySlicing,
         ragged=None,
         output_signal_size=None,
         output_dtype=None,
-        lazy_result=False,
+        lazy_result=None,
         max_workers=None,
         **kwargs,
     ):
@@ -4646,6 +4646,8 @@ class BaseSignal(FancySlicing,
 
         """
         # Separate ndkwargs depending on if they are BaseSignals.
+        if lazy_result is None:
+            lazy_result = self._lazy
         self_nav_shape = self.axes_manager.navigation_shape
         ndkwargs = {}
         ndkeys = [key for key in kwargs if isinstance(kwargs[key], BaseSignal)]
