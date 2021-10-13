@@ -4904,8 +4904,7 @@ class BaseSignal(FancySlicing,
                 _logger.warning(
                     "Passing arrays as keyword arguments can be ambiguous. "
                     "This is deprecated and will be removed in HyperSpy 2.0. "
-                    "Pass signal instances instead.",
-                    VisibleDeprecationWarning
+                    "Pass signal instances instead."
                 )
             if iterating_kwargs[key]._lazy:
                 if iterating_kwargs[key]._get_navigation_chunk_size() != nav_chunks:
