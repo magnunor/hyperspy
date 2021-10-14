@@ -1488,7 +1488,8 @@ class Signal1D(BaseSignal, CommonSignal1D):
                          ragged=True,
                          parallel=parallel,
                          max_workers=max_workers,
-                         inplace=False)
+                         inplace=False,
+                         lazy_result=False)
         return peaks.data
 
     find_peaks1D_ohaver.__doc__ %= (PARALLEL_ARG, MAX_WORKERS_ARG)
