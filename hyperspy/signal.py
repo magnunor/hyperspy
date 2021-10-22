@@ -59,7 +59,7 @@ from hyperspy.misc.utils import add_scalar_axis
 from hyperspy.docstrings.signal import (
     ONE_AXIS_PARAMETER, MANY_AXIS_PARAMETER, OUT_ARG, NAN_FUNC, OPTIMIZE_ARG,
     RECHUNK_ARG, SHOW_PROGRESSBAR_ARG, PARALLEL_ARG, MAX_WORKERS_ARG,
-    CLUSTER_SIGNALS_ARG, HISTOGRAM_BIN_ARGS, HISTOGRAM_MAX_BIN_ARGS)
+    CLUSTER_SIGNALS_ARG, HISTOGRAM_BIN_ARGS, HISTOGRAM_MAX_BIN_ARGS, LAZY_RESULT_ARG)
 from hyperspy.docstrings.plot import (BASE_PLOT_DOCSTRING, PLOT1D_DOCSTRING,
                                       BASE_PLOT_DOCSTRING_PARAMETERS,
                                       PLOT2D_KWARGS_DOCSTRING)
@@ -4597,7 +4597,6 @@ class BaseSignal(FancySlicing,
             Any function that can be applied to the signal.
         %s
         %s
-        %s
         inplace : bool, default True
             if ``True``, the data is replaced by the result. Otherwise
             a new Signal with the results is returned.
@@ -4607,6 +4606,8 @@ class BaseSignal(FancySlicing,
             the appropriate choice is made while processing. If True in case
             of lazy signal, the signal will be compute at the end of the
             mapping. Note: ``None`` is not allowed for Lazy signals!
+        %s
+        %s
         **kwargs : dict
             All extra keyword arguments are passed to the provided function
 
@@ -4734,7 +4735,7 @@ class BaseSignal(FancySlicing,
         else:
             self.events.data_changed.trigger(obj=self)
 
-    map.__doc__ %= (SHOW_PROGRESSBAR_ARG, PARALLEL_ARG, MAX_WORKERS_ARG)
+    map.__doc__ %= (SHOW_PROGRESSBAR_ARG, PARALLEL_ARG, LAZY_RESULT_ARG, MAX_WORKERS_ARG)
 
     def _map_all(self, function, inplace=True, **kwargs):
         """The function has to have either 'axis' or 'axes' keyword argument,
