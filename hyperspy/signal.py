@@ -4590,6 +4590,19 @@ class BaseSignal(FancySlicing,
         In general, only navigation axes (order, calibration, and number) are
         guaranteed to be preserved.
 
+        This method, ``map``, use two different methods to do the actual
+        processing: ``_map_all`` and ``_map_iterate``. ``_map_all`` inputs the
+        whole NumPy array (s.data) into the function, while ``_map_iterate``
+        sends one navigation position at a time to the function.
+        ``_map_all`` will only be used if i) ``parallel`` is ``False``, and
+        ii) there are no keyword arguments which changes over the navigation
+        axes, and iii) ``lazy_result`` is ``False``.
+
+        Using ``_map_all`` is especially useful for debugging, as the error
+        messages typically are much easier to read, do this by using
+        ``parallel=False``, ``lazy_result=False`` and no iterating
+        kwargs.
+
         Parameters
         ----------
 
@@ -4606,6 +4619,20 @@ class BaseSignal(FancySlicing,
             the appropriate choice is made while processing. If True in case
             of lazy signal, the signal will be compute at the end of the
             mapping. Note: ``None`` is not allowed for Lazy signals!
+        output_signal_size : None, tuple
+            Since the size and dtype of the signal dimension of the output
+            signal can be different from the input signal, this output signal
+            size must be calculated somehow. If both ``output_signal_size``
+            and ``output_dtype`` is ``None``, this is automatically determined.
+            However, if for some reason this is not working correctly, this
+            can be specified via ``output_signal_size`` and ``output_dtype``.
+            The most common reason for this failing is due to the signal size
+            being different for different navigation positions. If this is the
+            case, use ragged=True.
+            None is default.
+        output_dtype : None, NumPy dtype
+            See docstring for output_signal_size for more information.
+            See Default None.
         %s
         %s
         **kwargs : dict
@@ -4638,8 +4665,26 @@ class BaseSignal(FancySlicing,
         parameter is variable:
 
         >>> im = hs.signals.Signal2D(np.random.random((10, 64, 64)))
-        >>> sigmas = hs.signals.BaseSignal(np.linspace(2,5,10)).T
+        >>> sigmas = hs.signals.BaseSignal(np.linspace(2, 5, 10)).T
         >>> im.map(scipy.ndimage.gaussian_filter, sigma=sigmas)
+
+        Rotate the two signal dimensions, with different amount as a function
+        of navigation index. Delay the calculation by getting the result
+        lazily. The calculation is then done using the compute method.
+
+        >>> from scipy.ndimage import rotate
+        >>> s = hs.signals.Signal2D(np.random.random((5, 4, 40, 40)))
+        >>> s_angle = hs.signals.BaseSignal(np.linspace(0, 90, 20).reshape(5, 4)).T
+        >>> s.map(rotate, angle=s_angle, reshape=False, lazy_result=True)
+        >>> s.compute()
+
+        Rotate the two signal dimensions, with different amount as a function
+        of navigation index. In addition, the result is returned as a new
+        signal, instead of replacing the old signal.
+
+        >>> s = hs.signals.Signal2D(np.random.random((5, 4, 40, 40)))
+        >>> s_angle = hs.signals.BaseSignal(np.linspace(0, 90, 20).reshape(5, 4)).T
+        >>> s_rot = s.map(rotate, angle=s_angle, reshape=False, inplace=True)
 
         Note
         ----
