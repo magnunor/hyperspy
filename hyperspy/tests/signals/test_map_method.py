@@ -1095,3 +1095,15 @@ class TestCompareMapAllvsMapIterate:
         assert (s_rot_par.data == s_rot_not_par.data).all()
         assert s_rot_not_par.axes_manager.signal_shape != (50, 50)
         assert s_rot_par.axes_manager.signal_shape != (50, 50)
+
+
+def test_ragged():
+    def afunction(image):
+        output = np.arange(0, np.random.randint(1, 100))
+        return output
+    s = hs.signals.Signal1D(np.ones((10, 8, 100)))
+    s_out = s.map(afunction, inplace=False, ragged=True, parallel=False)
+    assert s_out.axes_manager.shape == s.axes_manager.navigation_shape
+    assert s_out.data.dtype == np.object
+    with pytest.raises(ValueError):
+        s.map(afunction, inplace=False, ragged=False, parallel=False)
