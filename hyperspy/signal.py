@@ -4691,9 +4691,9 @@ class BaseSignal(FancySlicing,
         Currently requires a uniform axis.
 
         """
-        # Separate ndkwargs depending on if they are BaseSignals.
         if lazy_result is None:
             lazy_result = self._lazy
+        # Separate ndkwargs depending on if they are BaseSignals.
         self_nav_shape = self.axes_manager.navigation_shape
         ndkwargs = {}
         ndkeys = [key for key in kwargs if isinstance(kwargs[key], BaseSignal)]
