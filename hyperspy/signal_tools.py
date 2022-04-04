@@ -145,11 +145,21 @@ class Signal2DCalibration(LineInSignal2D):
     units = t.Unicode()
 
     def __init__(self, signal):
-        super(Signal2DCalibration, self).__init__(signal)
-        if signal.axes_manager.signal_dimension != 2:
-            raise SignalDimensionError(signal.axes_manager.signal_dimension, 2)
-        self.units = self.signal.axes_manager.signal_axes[0].units
-        self.scale = self.signal.axes_manager.signal_axes[0].scale
+        super(Signal2DCalibration, self).__init__(signal, navi=False)
+        if navi:
+            self.axes_list = signal.axes_manager.navigation_axes
+            if signal.axes_manager.navigation_dimension != 2:
+                raise NavigationDimensionError(
+                    signal.axes_manager.navigation_dimension,
+                    2
+                )
+        else:
+            self.axes_list = signal.axes_manager.signal_axes
+            if signal.axes_manager.signal_dimension != 2:
+                raise SignalDimensionError(signal.axes_manager.signal_dimension, 2)
+        self.navi = navi
+        self.units = self.axes_list[0].units
+        self.scale = self.axes_list[0].scale
         self.on = True
 
     def _new_length_changed(self, old, new):
@@ -164,7 +174,7 @@ class Signal2DCalibration(LineInSignal2D):
         ):
             return
         self.scale = self.signal._get_signal2d_scale(
-            self.x0, self.y0, self.x1, self.y1, self.new_length
+            self.x0, self.y0, self.x1, self.y1, self.new_length, self.axes_list,
         )
 
     def _length_changed(self, old, new):
@@ -179,7 +189,7 @@ class Signal2DCalibration(LineInSignal2D):
         ):
             return
         self.scale = self.signal._get_signal2d_scale(
-            self.x0, self.y0, self.x1, self.y1, self.new_length
+            self.x0, self.y0, self.x1, self.y1, self.new_length, self.axes_list,
         )
 
     def apply(self):
@@ -191,7 +201,7 @@ class Signal2DCalibration(LineInSignal2D):
             _logger.warn("Line position is not valid")
             return
         self.signal._calibrate(
-            x0=x0, y0=y0, x1=x1, y1=y1, new_length=self.new_length, units=self.units
+            x0=x0, y0=y0, x1=x1, y1=y1, new_length=self.new_length, units=self.units, navi=self.navi,
         )
         self.signal._replot()
 

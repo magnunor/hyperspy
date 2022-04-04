@@ -772,6 +772,7 @@ class Signal2D(BaseSignal, CommonSignal2D):
         y1=None,
         new_length=None,
         units=None,
+        navi=False,
         interactive=True,
         display=True,
         toolkit=None,
@@ -821,33 +822,35 @@ class Signal2D(BaseSignal, CommonSignal2D):
                 )
             self._calibrate(x0, y0, x1, y1, new_length, units=units)
 
-    def _calibrate(self, x0, y0, x1, y1, new_length, units=None):
-        scale = self._get_signal2d_scale(x0, y0, x1, y1, new_length)
-        sa = self.axes_manager.signal_axes
-        sa[0].scale = scale
-        sa[1].scale = scale
+    def _calibrate(self, x0, y0, x1, y1, new_length, units=None, navi=False):
+        if navi:
+            axes_list = self.axes_manager.signal_axes
+        else:
+            axes_list = self.axes_manager.navigation_axes
+        scale = self._get_signal2d_scale(x0, y0, x1, y1, new_length, axes_list)
+        axes_list[0].scale = scale
+        axes_list[1].scale = scale
         if units is not None:
-            sa[0].units = units
-            sa[1].units = units
+            axes_list[0].units = units
+            axes_list[1].units = units
 
-    def _get_signal2d_scale(self, x0, y0, x1, y1, length):
-        sa = self.axes_manager.signal_axes
-        units = set([a.units for a in sa])
+    def _get_signal2d_scale(self, x0, y0, x1, y1, length, axes_list):
+        units = set([a.units for a in axes_list])
         if len(units) != 1:
             _logger.warning(
                 "The signal axes does not have the same units, this might lead to "
                 "strange values after this calibration"
             )
-        scales = set([a.scale for a in sa])
+        scales = set([a.scale for a in axes_list])
         if len(scales) != 1:
             _logger.warning(
                 "The previous scaling is not the same for both axes, this might lead to "
                 "strange values after this calibration"
             )
-        x0 = sa[0]._get_index(x0)
-        y0 = sa[1]._get_index(y0)
-        x1 = sa[0]._get_index(x1)
-        y1 = sa[1]._get_index(y1)
+        x0 = axes_list[0]._get_index(x0)
+        y0 = axes_list[1]._get_index(y0)
+        x1 = axes_list[0]._get_index(x1)
+        y1 = axes_list[1]._get_index(y1)
         pos = ((x0, y0), (x1, y1))
         old_length = np.linalg.norm(np.diff(pos, axis=0), axis=1)[0]
         scale = length / old_length
